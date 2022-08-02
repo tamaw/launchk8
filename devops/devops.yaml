@@ -1,0 +1,107 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+spec:
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  local:
+    path: /var/local-vol
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - minikube
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-storage
+  accessModes:
+  - ReadWriteOnce
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-storage
+  accessModes:
+  - ReadWriteOnce
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: docker
+  labels:
+    run: docker
+    role: devops
+spec:
+  nodeName: minikube
+  containers:
+  - name: docker
+    # env:
+      # - name: DOCKER_HOST
+        # value: tcp://localhost:2375
+      # - name: DOCKER_TLS_CERTDIR
+        # value: "" # no tls, internal only
+    image: docker:dind
+    # command: ['docker','run', '-p', '80:80', 'http:latest' ]
+    # ports:
+      # - name: docker-port
+        # containerPort: 2375
+        # protocol: TCP
+    securityContext:
+      privileged: true
+    volumeMounts:
+      - name: docker-pvc
+        mountPath: /var/lib/docker
+        subPath: docker
+  volumes:
+    - name: docker-pvc
+      persistentVolumeClaim:
+        claimName: docker-pvc
+---
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: agent
+#   labels:
+#     run: agent
+#     role: devops
+# spec:
+#   nodeName: minikube
+#   containers:
+#   - name: agent
+#     image: alpine/curl:latest
+#     command: [ "/bin/sleep", "9999999" ]
+#     volumeMounts:
+#     - name: dockersock
+#       mountPath: /var/run/docker.sock
+#   volumes:
+#   - name: dockersock
+#     hostPath:
+#       path: /var/run/docker.sock

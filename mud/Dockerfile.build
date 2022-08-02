@@ -1,0 +1,14 @@
+FROM haskell:slim as env
+ARG STACK_RESOLVER=lts-18.28
+RUN stack setup --resolver $STACK_RESOLVER
+
+FROM env as build-depsonly
+COPY stack.yaml stack.yaml.lock package.yaml mud.cabal ./
+RUN stack test --only-dependencies
+RUN stack build --only-dependencies
+
+FROM build-depsonly as build
+COPY . ./
+RUN stack test
+RUN stack build
+RUN stack --local-bin-path ./dist install

@@ -8,12 +8,24 @@ metadata:
 spec:
   containers:
   - name: docker
-    env:
-      - name: DOCKER_HOST
-        value: tcp://localhost:2375
-    image: docker:latest
+    # env:
+      # - name: DOCKER_HOST
+        # value: tcp://localhost:2375
+      # - name: DOCKER_TLS_CERTDIR
+        # value: "" # no tls, internal only
+    image: docker:dind
+    # command: ['docker','run', '-p', '80:80', 'http:latest' ]
+    # ports:
+      # - name: docker-port
+        # containerPort: 2375
+        # protocol: TCP
     securityContext:
       privileged: true
     volumeMounts:
-      - name: devops-pvc
+      - name: docker-pvc
         mountPath: /var/lib/docker
+        subPath: docker
+  volumes:
+    - name: docker-pvc
+      persistentVolumeClaim:
+        claimName: docker-pvc

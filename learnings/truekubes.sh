@@ -598,25 +598,6 @@ kubectl get sc
 
 
 
-## Project
-# architecture 
-# - docker in docker - runs builds in docker
-# - agent - github connection
-#:
-
-# - Separate docker build with
-# 
-
-# ssh into node to create the directories for local storage
-minikube ssh
-#$ sudo mkdir -p /var/local-vol
-#$ sudo chown -R 1000:1000 /var/local-vol
-#$ sudo chmod -R 755 /var/local-vol
-
-# create storage and docker
-
-
-
 
 
 
