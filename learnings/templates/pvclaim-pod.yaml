@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server
+  labels:
+    layer: interface
+    version: alpha
+spec:
+  containers:
+  - name: bbox
+    image: busybox:latest
+    command: ["/bin/sleep", "999999"]
+    volumeMounts:
+      - name: mypvc
+        mountPath: /shared
+  volumes:
+    - name: mypvc
+      persistentVolumeClaim:
+        claimName: mypvc

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: volpod
+spec:
+  containers:
+  - name: mapod
+    image: alpine:latest
+    command: [ "/bin/sh", "-c" ]
+    args: ["/bin/touch /vol1/file && sleep 9999" ]
+    volumeMounts:
+    - name: vol1
+      mountPath: /vol1
+  volumes:
+  - name: vol1
+    emptyDir: {}
+

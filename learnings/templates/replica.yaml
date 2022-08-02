@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: awesomeo
+  labels:
+    layer: five
+spec:
+  replicas: 3
+  selector:
+    matchExpressions:
+      - {key: layer, operator: In, values: [five] }
+  template:
+    metadata:
+      labels:
+        layer: five
+    spec:
+      containers:
+      - name: bbox
+        image: busybox:latest
+        command: ["/bin/sleep", "999999"]
+

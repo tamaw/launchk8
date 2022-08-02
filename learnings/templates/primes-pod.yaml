@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: primes
+  labels:
+    app: pod-demo
+spec:
+  containers:
+  - name: primes
+    image: truek8s/thousand-primes:1.0

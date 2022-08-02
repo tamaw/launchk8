@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ready
+spec:
+  containers:
+  - name: readyme
+    image: alpine:latest
+    command: [ "/bin/sleep", "9999" ]
+    # command: [ "/bin/sh", "-c" ]
+    # args: ["/bin/touch /tmp/file && sleep 9999" ]
+    lifecycle:
+      postStart:
+        exec:
+          command:
+            - "/bin/touch"
+            - "/tmp/file"
+      preStop:
+        exec:
+          command:
+            - "/bin/rm"
+            - "/tmp/file"
+    livenessProbe:
+      exec:
+        command: ["/usr/bin/test", "-e", "/tmp/file"]
+      initialDelaySeconds: 5
+      periodSeconds: 1
+      failureThreshold: 1
+      successThreshold: 1
+    readinessProbe:
+      exec:
+        command: ["/usr/bin/test", "-e", "/tmp/file"]
+

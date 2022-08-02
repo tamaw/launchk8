@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server
+  labels:
+    layer: interface
+    version: alpha
+spec:
+  containers:
+  - name: bbox
+    image: busybox:latest
+    command: ["/bin/sleep", "999999"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-gateway
+  labels:
+    layer: interface
+    version: stable
+spec:
+  containers:
+  - name: bbox
+    image: busybox:latest
+    command: ["/bin/sleep", "999999"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: business
+  labels:
+    layer: business
+    version: beta
+spec:
+  containers:
+  - name: bbox
+    image: busybox:latest
+    command: ["/bin/sleep", "999999"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: datawarehouse
+  labels:
+    layer: data
+    version: beta
+spec:
+  containers:
+  - name: bbox
+    image: busybox:latest
+    command: ["/bin/sleep", "999999"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cache
+  labels:
+    layer: data
+    version: beta
+spec:
+
+  selector:
+  containers:
+  - name: bbox
+    image: busybox:latest
+    command: ["/bin/sleep", "999999"]
+
