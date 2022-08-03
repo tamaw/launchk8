@@ -1,16 +1,14 @@
 ## Project
 
-
 # architecture 
-# - docker in docker - runs builds in docker
+# - docker in docker - runs builds in docker and hosts images
 # - agent - github connection
 # - Separate docker build with
 
 # worth checking out as alternatives
 # - buildah, podman
 
-
-## local machine (minikube)
+## create the docker within kubernetes  with (docker in docker)
 
 # create directories for local volumes (node only storage)
 minikube ssh
@@ -40,6 +38,12 @@ minikube ssh
 kubectl exec -it agent -- /bin/sh
 #$curl --unix-socket /var/socket/docker.sock http://localhost/images/json
 
+### Create the agent (github runner)
+
+# deploying this to minikube before the real stuff
+eval $(minikube docker-env)
+docker info
+
 # create our github runner docker image
 docker build -t agent:dev -f agent.Dockerfile . 
 # just a quick repo build for now 
@@ -51,21 +55,16 @@ docker run -it agent:latest /bin/bash
 docker run agent:dev
 
 # build again with token - tokens expire in 1 hour
-docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX4OREULBLCRO74O5QTC5IJES --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 -f agent.Dockerfile . 
-# still not working lol
-docker run -it --entrypoint /bin/bash agent:v1 
+docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX2E4KGTBKRBAKMUXXTC5IUCY --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile . 
+
 # yay working
 docker run -d agent:v1
-# export container 
+# remove for now 
+docker run -it --entrypoint /bin/bash agent:v1 
+./config.sh remove --token AADQVX2E4KGTBKRBAKMUXXTC5IUCY
+# export container for k0s later
 docker save agent:v1 | gzip > agentv1.tar.gz
-ls
-
-
-
-
-
-
-
+ls -la
 
 
 

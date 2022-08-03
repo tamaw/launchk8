@@ -18,7 +18,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local-storage
   local:
-    path: /var/local-vol
+    path: /var/local-vol0
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -31,19 +31,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: docker-pvc
-spec:
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: local-storage
-  accessModes:
-  - ReadWriteOnce
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: agent-pvc
+  name: vol0-pvc
 spec:
   resources:
     requests:
@@ -70,35 +58,38 @@ spec:
     securityContext:
       privileged: true
     volumeMounts:
-      - name: docker-pvc
+      - name: vol0-pvc
         mountPath: /var/lib/docker
         subPath: docker
-      - name: docker-pvc
+      - name: vol0-pvc
         mountPath: /var/socket
         subPath: socket
   volumes:
-    - name: docker-pvc
+    - name: vol0-pvc
       persistentVolumeClaim:
-        claimName: docker-pvc
+        claimName: vol0-pvc
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: agent
   labels:
-    run: agent
+    run: action-runner
     role: devops
 spec:
-  nodeName: minikube
+  # nodeName: minikube
   containers:
   - name: agent
-    image: alpine/curl:latest
-    command: [ "/bin/sleep", "9999999" ]
+    image: agent:v1
+    imagePullPolicy: IfNotPresent
     volumeMounts:
-    - name: docker-pvc
+    - name: vol0-pvc
       mountPath: /var/socket/
       subPath: socket
+    - name: vol0-pvc
+      mountPath: /var/_work/
+      subPath: _work
   volumes:
-  - name: docker-pvc
+  - name: vol0-pvc
     persistentVolumeClaim:
-      claimName: docker-pvc
+      claimName: vol0-pvc
