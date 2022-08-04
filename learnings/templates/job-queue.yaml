@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mkjob
+  labels:
+    app: job-demo
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+      - name: vol-pvc
+        persistentVolumeClaim:
+          claimName: vol-pvc
+      containers:
+      - name: job-rmdir
+        image: debian:latest
+        command: ['/bin/bash', '-c', 'cd /vol && rm -r ./demo/*; for i in {1..20}; do mkdir $i; done && mkdir "done"']
+        volumeMounts:
+        - name: vol-pvc
+          mountPath: /vol
+          subPath: demo
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rmjob
+  labels:
+    app: job-demo
+spec:
+  parallelism: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+      - name: vol-pvc
+        persistentVolumeClaim:
+          claimName: vol-pvc
+      containers:
+      - name: job-rmdir
+        image: debian:latest
+        command: ['/bin/bash', '-c', 'cd /vol && while ls -1 | grep -E "[0-9]+"; do rmdir $(ls -1 | grep -E "[0-9]+" | head -n 1) && sleep 1; done']
+        volumeMounts:
+        - name: vol-pvc
+          mountPath: /vol
+          subPath: demo
+      # wait for the other job to complete.
+      initContainers:
+      - name: job-mkdir
+        image: debian:latest
+        command: ['/bin/bash', '-c', 'cd /vol && until test -e "done"; do sleep 1; done']
+        volumeMounts:
+        - name: vol-pvc
+          mountPath: /vol
+          subPath: demo
+

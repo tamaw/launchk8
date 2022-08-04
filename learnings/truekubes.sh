@@ -171,7 +171,7 @@ kubectl create namespace dev
 kubectl create namespace tst 
 
 # you need to specify a namespace or else it's the default namespace
-kubectl create -f example.yml --namespace dev
+kubectl create -f example-pods.yml --namespace dev
 kubectl get pods -n dev
 
 # get all pods in all namespaces
@@ -566,16 +566,16 @@ kubectl delete -f storage.yaml
 #   - ReadWriteMany - many nodes can read/write
 #   - ReadOnlyMany - many nodes can read
 # - PVs have labels, PVCs have label selectors
-kubectl create -f pvol.yaml
+kubectl create -f pv.yaml
 kubectl get pv
-kubectl create -f pclaim.yml
+kubectl create -f pclaim-pod.yml
 kubectl get pvc,pv
-kubectl create -f podclaim.yml
+kubectl create -f vol-pod.yml
 kubectl get po
 kubectl exec -it web-server -- sh
 # cd /shared; touch willisurvive
-kubectl delete -f podclaim.yml
-kubectl create -f podclaim.yml
+kubectl delete -f pvclaim-pod.yml
+kubectl create -f pvclaim-pod.yml
 kubectl exec -it web-server -- sh
 # ls /shared
 
@@ -596,8 +596,55 @@ kubectl get sc
 # kubernetes can dynamically provision the pv to fill a pvc off of the default storageClass 
 # unless specified, to use a storageClass by name
 
+## Job (controller)
+# - a controller which ensures successful completion before being removed
+# - a normal pod can be evicted before finishing the job
+# - types of jobs
+#   - nonparallel
+#   - parallel jobs with fixed compleition count
+#   - parallel jobs with a task queue
+# - jobs create labels and selectors for you
+# - restartPolicy can either be onFailure or Never
+# - always will never let the pod terminate
+# - default of 6 retries
+# - fixed compleition 
+#   - add parallelism field to config
+#   - determine how it is compelted is the number of compelted tasks
+# - with a task queue
+#   - complete when the queue is empty
+#   - each pod must know when to terminate  - typically when the queue is empty
+#   - when the completion is nil, the success of one pod is the success off all pods
+#   - deployments only need a single replica for parallel jobs to run
+# - you can use kubectl scale to increase or decrease the number of running jobs
+# - the pods stick around when the jobs complete
 
+## job fixed 
+#commds for container
+mkdir -p tmp/1 tmp/2 tmp/3 tmp/4 tmp/5
+rmdir $(ls -1 | head -n 1)
 
+#kubectl create -f local-storage.yaml # used for example
+#kubectl get pvc
+kubectl create -f job.yaml # create our jobs
+
+# check to see its completed
+kubectl get po 
+kubectl describe job folderjob
+kubectl logs job.batch/folderjob
+
+# check the volume out to see the directories
+minikube ssh 
+ls /var/local-vol0/demo
+
+# cleanup
+kubectl delete -f job.yaml 
+
+## job queues
+# commands for containers
+for i in {1..100}; do mkdir $i; done
+mkdir "done"
+test -e "done"
+while ! test -e "done"; do sleep 1; done
 
 
 

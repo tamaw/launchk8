@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: folderjob
+  labels:
+    app: job-demo
+spec:
+  parallelism: 2
+  completions: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+      - name: vol-pvc
+        persistentVolumeClaim:
+          claimName: vol-pvc
+      containers:
+      - name: job-rmdir
+        image: busybox:latest
+        command: ['sh', '-c', 'cd /vol && rmdir $(ls -1 |head -n 1)']
+        volumeMounts:
+        - name: vol-pv
+          mountPath: /vol
+          subPath: demo
+      # runs init for every parallel operation of 2 containers (3,4,5,6,7)
+      initContainers:
+      - name: job-mkdir
+        image: busybox:latest
+        command: ['sh', '-c', 'cd /vol && mkdir -p 1 2 3 4 5 6 7']
+        volumeMounts:
+        - name: vol-pvc
+          mountPath: /vol
+          subPath: demo
+
+
+
