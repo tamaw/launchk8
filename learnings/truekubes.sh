@@ -623,9 +623,9 @@ kubectl get sc
 mkdir -p tmp/1 tmp/2 tmp/3 tmp/4 tmp/5
 rmdir $(ls -1 | head -n 1)
 
-#kubectl create -f local-storage.yaml # used for example
+kubectl create -f local-storage.yaml # used for example
 #kubectl get pvc
-kubectl create -f job.yaml # create our jobs
+kubectl create -f job-fixed.yaml # create our jobs
 
 # check to see its completed
 kubectl get po 
@@ -637,15 +637,90 @@ minikube ssh
 ls /var/local-vol0/demo
 
 # cleanup
-kubectl delete -f job.yaml 
+kubectl delete -f job-fixed.yaml 
 
 ## job queues
 # commands for containers
-for i in {1..100}; do mkdir $i; done
-mkdir "done"
-test -e "done"
-while ! test -e "done"; do sleep 1; done
+# create folders
+for i in {1..100}; do mkdir $i; done && mkdir "done"
+# test until folders are created
+until test -e "done"; do sleep 1; done 
+# delete folders until all are done
+while ls -1 | grep -E "[0-9]+"; do sleep 1 && rmdir $(ls -1 | grep -E "[0-9]+" | head -n 1); done
 
+kubectl create -f job-queue.yaml 
+#kubectl delete -f job-queue.yaml 
+# watch the jobs run
+kubectl get po -w
+
+kubectl get events
+kubectl logs job/rmjob
+kubectl describe job mkjob
+kubectl describe job rmjob
+
+# check out the directory - should see done folder
+minikube ssh
+
+# cleanup
+kubectl delete job mkjob
+kubectl delete job rmjob
+
+## cronjobs
+# - very similar to unix cron jobs - in the same format
+# - spec: schedule: "*/1 * * * *"
+# - works like the other jobs
+# - if a cron job is still running when it is scheduled again it can be controlled with policies
+#   - allow, run the job again (default)
+#   - forbid, wont run
+#   - replace, stops the old job and starts a new job
+# - startingdeadlineseconds - if the job hasn't started succesful, it will be considered failed
+
+## stateful/stateless pods
+# stateless
+# - interchangable, don't maintain any information
+# - can be replaced with a new pod
+# stateful
+# - not interchangable 
+# - maintains their storage when replaced
+# - used with the stateful set controller
+# - e.g. databases
+
+## statuful set pod
+# - stable identity
+# - always deployed and deleted in order
+# - own stable storage
+# - they are numbered in order statefulpod-0 statefulpod-1
+# - they are created in incrementing order and deleted in reverse order
+# - if they need to be recreated they will fill the gaps
+# - you can rely on these hostnames in applications
+# headless service 
+# - a service without a cluster ip address
+# - spec: clusterIP: None
+# - provides no loadblanace or proxy
+# - maintains a stateless pods dns record turning the dns to stateful
+# - headless services get stateful pods their identity 
+# - can address the pod via service with statefulset.ordinal#.namspace
+# - label selector must match the pod labels
+# statuful volumes
+# - each pod has it's own persistant volume
+# - rescheduling a pod will mount the same volume
+# - deleting a stateful set wont delete the volume, must be manually done
+# creating stateful set
+# - spec: serviceName: <same as set label>
+# - include a volumeclaimtemplate
+#   - list of pvc as mounted as volumes
+#   - can specify storageclassname to provision
+#   - can omit and use the default storage class
+# - can use host to get the # of the stateful pods
+# lifecycle
+# - spec: containers: lifecycle: postStart
+#   - can run a script prior to starting in the pods lifecycle
+
+
+
+
+
+kubectl create -f headless-service.yaml
 
 
 

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hl
+  labels:
+    app: demo
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    pod-labels: match
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: echo
+  labels:
+    app: demo
+spec:
+  selector:
+    matchLabels:
+      pod-labels: match
+  serviceName: hl
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        pod-labels: match
+    spec:
+      containers:
+      - name: echo
+        image: ubuntu/memcached:latest
+        volumeMounts:
+        - name: data
+          mountPath: /var/vol
+          subPath: data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      # storageClassName: "local-storage"
+      resources:
+        requests:
+          storage: 128M
+
