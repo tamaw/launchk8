@@ -41,55 +41,100 @@ spec:
   - ReadWriteOnce
 ---
 apiVersion: v1
-kind: Pod
+kind: Service
 metadata:
-  name: docker
+  name: docker-svc
   labels:
-    run: docker
     role: devops
 spec:
-  # nodeName: minikube
-  containers:
-  - name: docker
-    env:
-      - name: DOCKER_HOST
-        value: unix:///var/socket/docker.sock
-    image: docker:dind
-    securityContext:
-      privileged: true
-    volumeMounts:
-      - name: vol0-pvc
-        mountPath: /var/lib/docker
-        subPath: docker
-      - name: vol0-pvc
-        mountPath: /var/socket
-        subPath: socket
-  volumes:
-    - name: vol0-pvc
-      persistentVolumeClaim:
-        claimName: vol0-pvc
+  clusterIP: None
+  selector:
+    run: docker
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: docker-ss
+  labels:
+    role: devops
+spec:
+  selector:
+    matchLabels:
+      run: docker
+  serviceName: docker-ss
+  replicas: 1
+  template:
+    metadata:
+      name: docker
+      labels:
+        run: docker
+        role: devops
+    spec:
+      # nodeName: minikube
+      containers:
+      - name: docker
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/socket/docker.sock
+        image: docker:dind
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: vol0-pvc
+            mountPath: /var/lib/docker
+            subPath: docker
+          - name: vol0-pvc
+            mountPath: /var/socket
+            subPath: socket
+      volumes:
+        - name: vol0-pvc
+          persistentVolumeClaim:
+            claimName: vol0-pvc
 ---
 apiVersion: v1
-kind: Pod
+kind: Service
 metadata:
-  name: agent
+  name: agent-svc
+  labels:
+    role: devops
+spec:
+  clusterIP: None
+  selector:
+    pod-labels: matchme
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agent-ss
   labels:
     run: action-runner
     role: devops
 spec:
-  # nodeName: minikube
-  containers:
-  - name: agent
-    image: agent:v1
-    imagePullPolicy: IfNotPresent
-    volumeMounts:
-    - name: vol0-pvc
-      mountPath: /var/socket/
-      subPath: socket
-    - name: vol0-pvc
-      mountPath: /var/_work/
-      subPath: _work
-  volumes:
-  - name: vol0-pvc
-    persistentVolumeClaim:
-      claimName: vol0-pvc
+  selector:
+    matchLabels:
+      run: action-runner
+  serviceName: agent-svc
+  replicas: 1
+  template:
+    metadata:
+      name: agent
+      labels:
+        run: action-runner
+        role: devops
+    spec:
+      # nodeName: minikube
+      containers:
+      - name: agent
+        image: agent:v1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: vol0-pvc
+          mountPath: /var/socket/
+          subPath: socket
+        - name: vol0-pvc
+          mountPath: /var/_work/
+          subPath: _work
+      volumes:
+      - name: vol0-pvc
+        persistentVolumeClaim:
+          claimName: vol0-pvc
