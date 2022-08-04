@@ -716,13 +716,71 @@ kubectl delete job rmjob
 # - spec: containers: lifecycle: postStart
 #   - can run a script prior to starting in the pods lifecycle
 
+kubectl create -f stateful-pod.yaml
+kubectl delete -f stateful-pod.yaml
 
+kubectl get pods
+kubectl get events
 
+## secrets
+# types of secrets
+# - generic - text
+#   - you can pass in files --from-file=secret.txt making key=filename value=filecontents
+#   - you can pass literal values --from-literal=key=value
+# - tls - certificate
+#   - tls --cert=a.cert --key=secret.key
+# - config fie  
+#   - must be base64 encoded
+# ways to access
+# - by volume
+#   - You can mount secerts as a volume and access the keys as files
+#   - mounted in ramfs
+# - k8s only sends a secret to a node if a pod on that node requires it, reducing some risk
+# - secrets are stored in ram and in etcd on disk
+# - newer version of k8s can encrypt secrets at rest
+# - from there secrets are communicated to kublets/users encrypted (in most distributions)
 
+# add secrets
+kubectl create secret generic --from-literal=thekey=thevalue
+echo -n "user1" | base64
+# base64 -w 0 # remove any line wrapping
+kubectl create -f secret.yaml
+kubectl get secret/super-secret
+# display the secret values
+kubectl get secret/super-secret -o yaml 
 
-kubectl create -f headless-service.yaml
+# use secrets as files
+kubectl create -f secret-pod.yaml
+kubectl exec -it secret-vol -- sh
+ls /secrets
+cat /secrets/username
 
+# use secrets as environment variables
+kubectl create -f secret-pod.yaml
+kubectl exec -it secret-vol -- sh
+# look for USERNAME
+printenv
 
+# Container registries
+# - you can provide a docker register secret with 'create secret docker-registry'
 
+#--- maybe switch to minikube docker and go into the mounted docker socket?
+kubectl create secret docker-registry dind --docker-server=unix:///var/local-vol0/socket/docker.sock
+
+# Service Accounts
+# - Cluster Accounts are either User accounts or Service Accounts
+# - must be authenticated to use the API server
+# - container processes can interact with the API with a service account
+# - without specified it will have a default service account
+# - A service account can have a secret and all pods with tha t
+# there's a different default service account for each namspace
+
+#kubectl patch serviceaccount/default -p '{"imagePullSecrets": [{"name": "thesecret"}]}'
+
+# Config Map
+# - very similar to secrets
+# - use for configuration which can change on different clusters
+# - 
+kubectl create configmap Config1 --from-file=properties.conf
 
 
