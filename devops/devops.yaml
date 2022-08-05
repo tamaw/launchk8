@@ -127,6 +127,9 @@ spec:
       - name: agent
         image: agent:v1
         imagePullPolicy: IfNotPresent
+        env:
+        - name: DOCKER_HOST
+          value: unix:///var/socket/docker.sock
         volumeMounts:
         - name: vol0-pvc
           mountPath: /var/socket/

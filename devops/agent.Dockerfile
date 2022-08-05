@@ -20,6 +20,8 @@ RUN cd /opt/actions-runner \
     && ./bin/installdependencies.sh \
     && chown -R agent:agent .
 
+COPY --from=docker:dind /usr/local/bin/docker /usr/local/bin
+
 USER agent
 # ignores failure if already registered
 RUN cd /opt/actions-runner \
