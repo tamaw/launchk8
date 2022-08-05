@@ -100,7 +100,37 @@ metadata:
 spec:
   clusterIP: None
   selector:
-    pod-labels: matchme
+    run: action-runner
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: internal-kubectl
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: podrole-agent-bind
+subjects:
+  - kind: ServiceAccount
+    name: internal-kubectl
+roleRef:
+  kind: Role
+  name: pod-role
+  apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -122,6 +152,7 @@ spec:
         run: action-runner
         role: devops
     spec:
+      serviceAccountName: internal-kubectl
       # nodeName: minikube
       containers:
       - name: agent
@@ -141,3 +172,5 @@ spec:
       - name: vol0-pvc
         persistentVolumeClaim:
           claimName: vol0-pvc
+
+
