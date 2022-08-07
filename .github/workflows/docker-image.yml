@@ -15,5 +15,5 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: build mud
-      run: docker build -t mud:tama --target runtime mud/server
+      run: docker build -t mud:tama -f repos/mud/server --target runtime repos/mud/server
     
