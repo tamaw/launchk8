@@ -22,6 +22,7 @@ minikube start --kubernetes-version=1.23
 # deploy 
 kubectl delete -f devops.yaml
 kubectl create -f devops.yaml
+kubectl apply -f devops.yaml
 
 # check to see if it's running correctly
 kubectl get sc,pv,pvc
@@ -62,9 +63,42 @@ docker run -d agent:v1
 # remove for now 
 docker run -it --entrypoint /bin/bash agent:v1 
 ./config.sh remove --token AADQVX2E4KGTBKRBAKMUXXTC5IUCY
+
+
 # export container for k0s later
 docker save agent:v1 | gzip > agentv1.tar.gz
 ls -la
+
+# new deployment with stateful services
+
+# register the dind docker as a repo, create a secret pointing to it and pull image
+kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a 
+kubectl delete secret docker-dind
+kubectl delete po/test-dind
+kubectl create -f test-pod.yaml
+kubectl get po
+kubectl describe po/test-dind
+kubectl exec -it test-dind -- /bin/bash 
+# save yaml
+kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a -o=yaml --dry-run=client
+
+# put secret into the yaml
+
+# can the agent deploy from dind ?
+kubectl exec -it agent-ss-0 -- /bin/bash 
+cd /var/socket # test.yaml is here
+kubectl create -f test.yaml
+kubectl get po
+
+# back to local machine for permission to read events
+kubectl descibe po/test 
+kubectl get events
+kubectl create -f test.yaml
+
+# can then try assign the secret to the service account for the deployment role
+kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-dind\"}]}"  
+
+# think about deployment permissions
 
 
 

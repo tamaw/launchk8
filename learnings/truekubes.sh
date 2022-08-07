@@ -739,6 +739,7 @@ kubectl get events
 # - secrets are stored in ram and in etcd on disk
 # - newer version of k8s can encrypt secrets at rest
 # - from there secrets are communicated to kublets/users encrypted (in most distributions)
+# - for lots of secerts you can use secretref
 
 # add secrets
 kubectl create secret generic --from-literal=thekey=thevalue
@@ -775,12 +776,17 @@ kubectl create secret docker-registry dind --docker-server=unix:///var/local-vol
 # - A service account can have a secret and all pods with tha t
 # there's a different default service account for each namspace
 
-#kubectl patch serviceaccount/default -p '{"imagePullSecrets": [{"name": "thesecret"}]}'
+kubectl patch serviceaccount/default -p '{"imagePullSecrets": [{"name": "thesecret"}]}'
 
 # Config Map
 # - very similar to secrets
 # - use for configuration which can change on different clusters
-# - 
-kubectl create configmap Config1 --from-file=properties.conf
+# - you can use them as environment variables env: name: blah valueFrom: configMapKeyRef:
+# - for lots of env vars there's a short hand. envFrom: - configMapRef: name: key
+# - values are cached when mounted as a volume, can take time to propagate
+kubectl create configmap myconfig1 --from-file=properties.conf
+kubectl get cm/myconfig1 -o yaml
+
+
 
 
