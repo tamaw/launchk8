@@ -1,0 +1,19 @@
+name: Test dind in k8s
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: build mud
+      run: docker build -t mud:tama --target runtime mud/server
+    
