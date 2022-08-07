@@ -18,5 +18,5 @@ jobs:
       with:
         submodules: recursive
     - name: build mud
-      run: docker build -t mud:tama -f repos/mud/server --target runtime repos/mud/server
+      run: docker build -t mud:tama -f repos/mud/server/Dockerfile --target runtime repos/mud/server
     
