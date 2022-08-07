@@ -114,5 +114,8 @@ ls /etc/ssh_keys
 # use the SSH key for github 
 set GIT_SSH_COMMAND 'ssh -i key -o IdentitiesOnly=yes'
 
+# TODO: need to fix some of the file permissions up for the secrets and sockets
+
+
 
 
