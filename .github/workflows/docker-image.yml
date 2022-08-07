@@ -13,7 +13,10 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - name: build mud
       run: docker build -t mud:tama -f repos/mud/server --target runtime repos/mud/server
     
