@@ -161,6 +161,8 @@ spec:
         env:
         - name: DOCKER_HOST
           value: unix:///var/socket/docker.sock
+        - name: GIT_SSH_COMMAND
+          value: 'ssh -i /etc/ssh_keys/key -o IdentitiesOnly=yes'
         volumeMounts:
         - name: vol0-pvc
           mountPath: /var/socket/
@@ -168,9 +170,14 @@ spec:
         - name: vol0-pvc
           mountPath: /var/_work/
           subPath: _work
+        - name: ssh-volume
+          readOnly: true
+          mountPath: /etc/ssh_keys
       volumes:
       - name: vol0-pvc
         persistentVolumeClaim:
           claimName: vol0-pvc
-
-
+      - name: ssh-volume
+        secret:
+          defaultMode: 256
+          secretName: ssh-key-secret

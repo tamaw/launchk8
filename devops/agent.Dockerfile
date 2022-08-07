@@ -1,6 +1,6 @@
 FROM debian:bullseye
 
-ARG PACKAGES="curl libc-dev"
+ARG PACKAGES="curl git libc-dev"
 ARG RUNNER_VERSION="2.294.0"
 ARG RUNNER_GITHUB_URL="https://github.com/org/proj"
 ARG RUNNER_TOKEN="" # 1 hour expiry

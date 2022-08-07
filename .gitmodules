@@ -1,4 +1,4 @@
 [submodule "repos/mud"]
 	path = repos/mud
-	url = https://github.com/hahahaskell/mud.git
+	url = git@github.com:hahahaskell/mud.git
 	branch = master

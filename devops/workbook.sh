@@ -56,13 +56,13 @@ docker run -it agent:latest /bin/bash
 docker run agent:dev
 
 # build again with token - tokens expire in 1 hour
-docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX2E4KGTBKRBAKMUXXTC5IUCY --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile . 
+docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX7B4BBITUPDDMUMI6DC55F7M --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile . 
 
 # yay working
 docker run -d agent:v1
 # remove for now 
 docker run -it --entrypoint /bin/bash agent:v1 
-./config.sh remove --token AADQVX2E4KGTBKRBAKMUXXTC5IUCY
+./config.sh remove --token AADQVX75PVWVJYQUACL3FMLC55FUI
 
 
 # export container for k0s later
@@ -99,6 +99,20 @@ kubectl create -f test.yaml
 kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-dind\"}]}"  
 
 # think about deployment permissions
+
+# ssh key for private repo
+ssh-keygen -t ed25519 -C "me@tama.id.au" -f key -P ""
+kubectl create secret generic ssh-key-secret --from-file=ssh-github=key --from-file=ssh-github-pub=key.pub
+# !! upload .pub to github
+kubectl delete -f devops.yaml
+kubectl create -f devops.yaml
+kubectl exec -it agent-ss-0 -- /bin/bash 
+# check if the keys appear
+ls /etc/ssh_keys
+# test out the connection
+
+# use the SSH key for github 
+set GIT_SSH_COMMAND 'ssh -i key -o IdentitiesOnly=yes'
 
 
 
