@@ -1,0 +1,97 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+  labels:
+    name: ingressive
+    role: demo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: demo.example
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/hello"
+        backend:
+          service:
+            name: hello-svc
+            port:
+              number: 3000
+      - pathType: Prefix
+        path: "/echo"
+        backend:
+          service:
+            name: echo-svc
+            port:
+              number: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-svc
+  labels:
+    role: demo
+spec:
+  selector:
+    app: echoserver
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echoserver
+  template:
+    metadata:
+      labels:
+        app: echoserver
+    spec:
+      containers:
+      - image: ealen/echo-server
+        name: echoserver
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-svc
+  labels:
+    role: demo
+spec:
+  selector:
+    app: helloserver
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helloserver
+  template:
+    metadata:
+      labels:
+        app: helloserver
+    spec:
+      containers:
+      - image: nginxdemos/hello
+        name: helloserver
+        ports:
+        - containerPort: 80
+

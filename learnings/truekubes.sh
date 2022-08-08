@@ -787,6 +787,27 @@ kubectl patch serviceaccount/default -p '{"imagePullSecrets": [{"name": "thesecr
 kubectl create configmap myconfig1 --from-file=properties.conf
 kubectl get cm/myconfig1 -o yaml
 
+## Ingress
+# - cluster ip service - not accessible outside
+# - nodeport and loadbalances are exposed to the outside network
+# - ingress also exposed outside the network with more flexibility
+#   - ingress object - created from a config file
+#   - ingress controller - daemon process to implement the rules
+#      - same as replica controllers etc
+#      - ingress controllers are not installed by default with an object
+# - route incoming connections on http request path
+# - TLS termination - https to http internally
+# - name-based virtual hosting
+# - lots of ingress controller implementations 
+#   - for example minikube uses nginx which should be deployed on a pod
+# - fanout - different paths go to different pods
+# - rewrite-target - changes the path to what the backend service expects
+# 
 
+minikube addons enable ingress
+kubectl get po -n ingress-nginx
+kubectl create -f ingress-demo.yaml
+kubectl get po
+curl 
 
 
