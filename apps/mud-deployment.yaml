@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mud-deploy
+  labels:
+    role: app
+    app: mud
+spec:
+  replicas: 3
+  selector:
+    matchExpressions:
+      - { key: run, operator: In, values: [mud] }
+  template:
+    metadata:
+      labels:
+        run: mud
+        app: mud
+        role: app
+    spec:
+      containers:
+      - name: mud-app
+        image: mud:tama
+        volumeMounts:
+        - name: vol0-pvc
+          mountPath: /var/lib/mud/data
+          subPath: mud-data
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mud-svc
+  labels:
+    role: app
+    app: mud
+spec:
+  selector:
+    run: mud
+  ports:
+  - protocol: TCP
+    port: 8888
+    targetPort: 8888

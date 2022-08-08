@@ -115,6 +115,14 @@ rules:
   - apiGroups: [""]
     resources:
       - pods
+      - services
+    verbs:
+      - get
+      - list
+      - create
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
     verbs:
       - get
       - list

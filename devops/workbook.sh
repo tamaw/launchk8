@@ -116,6 +116,16 @@ set GIT_SSH_COMMAND 'ssh -i key -o IdentitiesOnly=yes'
 
 # TODO: need to fix some of the file permissions up for the secrets and sockets
 
+## Deploy the built container from dind into the cluster
 
+# needs permission for deployments in the app api group
+kubectl api-resources -o wide
+kubectl apply -f devops.yaml
+
+# created mud-deployment.yaml - should source it via the service account patch
+kubectl cp ../apps/mud-deployment.yaml agent-ss-0:/var/_work
+kubectl exec -it agent-ss-0 -- /bin/bash 
+cd /var/_work
+kubectl create -f mud-deployment.yaml
 
 
