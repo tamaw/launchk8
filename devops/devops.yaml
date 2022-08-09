@@ -18,7 +18,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local-storage
   local:
-    path: /var/local-vol0
+    path: /var/local-vol
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -31,7 +31,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: vol0-pvc
+  name: local-pvc
 spec:
   resources:
     requests:
@@ -41,76 +41,42 @@ spec:
   - ReadWriteOnce
 ---
 apiVersion: v1
-kind: Service
+kind: Pod
 metadata:
-  name: docker-svc
+  name: docker
   labels:
-    role: devops
-spec:
-  clusterIP: None
-  selector:
     run: docker
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: docker-ss
-  labels:
     role: devops
 spec:
-  selector:
-    matchLabels:
-      run: docker
-  serviceName: docker-svc
-  replicas: 1
-  template:
-    metadata:
-      name: docker
-      labels:
-        run: docker
-        role: devops
-    spec:
-      # nodeName: minikube
-      containers:
-      - name: docker
-        env:
-          - name: DOCKER_HOST
-            value: unix:///var/socket/docker.sock
-        image: docker:dind
-        securityContext:
-          privileged: true
-        volumeMounts:
-          - name: vol0-pvc
-            mountPath: /var/lib/docker
-            subPath: docker
-          - name: vol0-pvc
-            mountPath: /var/socket
-            subPath: socket
-      volumes:
-        - name: vol0-pvc
-          persistentVolumeClaim:
-            claimName: vol0-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: agent-svc
-  labels:
-    role: devops
-spec:
-  clusterIP: None
-  selector:
-    run: action-runner
+  containers:
+  - name: docker
+    env:
+      - name: DOCKER_HOST
+        value: unix:///var/socket/docker.sock
+    image: docker:dind
+    securityContext:
+      privileged: true
+    volumeMounts:
+      - name: local-vol
+        mountPath: /var/lib/docker
+        subPath: docker
+      - name: local-vol
+        mountPath: /var/socket
+        subPath: socket
+  volumes:
+    - name: local-vol
+      persistentVolumeClaim:
+        claimName: local-pvc
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: internal-kubectl
+  name: devops-sa
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: pod-role
+  name: deploy-role
 rules:
   - apiGroups: [""]
     resources:
@@ -131,64 +97,99 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: podrole-agent-bind
+  name: devops-deploy-bind
 subjects:
   - kind: ServiceAccount
-    name: internal-kubectl
+    name: devops-sa
 roleRef:
   kind: Role
-  name: pod-role
+  name: deploy-role
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: v1
+kind: Pod
 metadata:
-  name: agent-ss
+  name: agent
   labels:
     run: action-runner
     role: devops
 spec:
-  selector:
-    matchLabels:
-      run: action-runner
-  serviceName: agent-svc
-  replicas: 1
-  template:
-    metadata:
-      name: agent
-      labels:
-        run: action-runner
-        role: devops
-    spec:
-      serviceAccountName: internal-kubectl
-      # nodeName: minikube
-      containers:
-      - name: agent
-        image: agent:v1
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: DOCKER_HOST
-          value: unix:///var/socket/docker.sock
-        - name: GIT_SSH_COMMAND
-          value: 'ssh -i /etc/ssh_keys/ssh-github -o IdentitiesOnly=yes'
-        volumeMounts:
-        - name: vol0-pvc
-          mountPath: /var/socket/
-          subPath: socket
-        - name: vol0-pvc
-          mountPath: /var/_work/
-          subPath: _work
-        - name: ssh-volume
-          readOnly: true
-          mountPath: /etc/ssh_keys
-      volumes:
-      - name: vol0-pvc
-        persistentVolumeClaim:
-          claimName: vol0-pvc
-      - name: ssh-volume
-        secret:
-          defaultMode: 292
-          secretName: ssh-key-secret
+  serviceAccountName: devops-sa
+  containers:
+  - name: agent
+    image: agent:v1
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: DOCKER_HOST
+      value: unix:///var/socket/docker.sock
+    - name: GIT_SSH_COMMAND
+      value: 'ssh -i /etc/ssh_keys/ssh-github -o IdentitiesOnly=yes'
+    volumeMounts:
+    - name: local-vol
+      mountPath: /var/socket/
+      subPath: socket
+    - name: local-vol
+      mountPath: /var/_work/
+      subPath: _work
+    - name: ssh-keys-vol
+      readOnly: true
+      mountPath: /etc/ssh_keys
+  volumes:
+  - name: local-vol
+    persistentVolumeClaim:
+      claimName: local-pvc
+  - name: ssh-keys-vol
+    secret:
+      defaultMode: 292
+      secretName: ssh-key-secret
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: registry
+  labels:
+    run: registry
+    role: devops
+spec:
+  containers:
+  - name: registry
+    image: registry:2
+    env:
+    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+      value: /var/registry
+    - name: REGISTRY_AUTH
+      value: htpasswd
+    - name: REGISTRY_AUTH_HTPASSWD_REALM
+      value: basic_realm
+    - name: REGISTRY_AUTH_HTPASSWD_PATH
+      value: /etc/auth/htpasswd
+    - name: REGISTRY_HTTP_TLS_CERTIFICATE
+      value: /etc/certs/tls.crt
+    - name: REGISTRY_HTTP_TLS_KEY
+      value: /etc/certs/tls.key
+    ports:
+    - containerPort: 5000
+      name: registry-port
+    volumeMounts:
+      - name: local-vol
+        mountPath: /var/registry
+        subPath: registry
+      - name: certs-vol
+        mountPath: /etc/certs
+        readOnly: true
+      - name: auth-vol
+        mountPath: /etc/auth
+        readOnly: true
+  volumes:
+    - name: local-vol
+      persistentVolumeClaim:
+        claimName: local-pvc
+    - name: certs-vol
+      secret:
+        secretName: registry-cert
+    - name: auth-vol
+      secret:
+        secretName: registry-auth
 ---
 apiVersion: v1
 kind: Service
@@ -197,70 +198,10 @@ metadata:
   labels:
     role: devops
 spec:
-  # clusterIP: None
   selector:
     run: registry
   ports:
-  - ports:
+  - protocol: TCP
     port: 5000
-    targetPort: 5000
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: registry-ss
-  labels:
-    role: devops
-spec:
-  selector:
-    matchLabels:
-      run: registry
-  serviceName: registry-svc
-  replicas: 1
-  template:
-    metadata:
-      name: registry
-      labels:
-        run: registry
-        role: devops
-    spec:
-      containers:
-      - name: docker
-        env:
-        - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
-          value: /var/registry
-        - name: REGISTRY_AUTH
-          value: htpasswd
-        - name: REGISTRY_AUTH_HTPASSWD_REALM
-          value: basic_realm
-        - name: REGISTRY_AUTH_HTPASSWD_PATH
-          value: /etc/auth/htpasswd
-        - name: REGISTRY_HTTP_TLS_CERTIFICATE
-          value: /etc/certs/tls.crt
-        - name: REGISTRY_HTTP_TLS_KEY
-          value: /etc/certs/tls.key
-        image: registry:2
-        ports:
-        - containerPort: 5000
-          name: docker-port
-        volumeMounts:
-          - name: vol0-vol
-            mountPath: /var/registry
-            subPath: registry
-          - name: certs-vol
-            mountPath: /etc/certs
-            readOnly: true
-          - name: auth-vol
-            mountPath: /etc/auth
-            readOnly: true
-      volumes:
-        - name: vol0-vol
-          persistentVolumeClaim:
-            claimName: vol0-pvc
-        - name: certs-vol
-          secret:
-            secretName: registry-cert
-        - name: auth-vol
-          secret:
-            secretName: registry-auth
+    targetPort: registry-port
 ---

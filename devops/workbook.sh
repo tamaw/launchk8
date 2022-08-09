@@ -56,7 +56,8 @@ docker run -it agent:latest /bin/bash
 docker run agent:dev
 
 # build again with token - tokens expire in 1 hour
-docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX7B4BBITUPDDMUMI6DC55F7M --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile . 
+# !! in minikube docker
+docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX2L4LHS7IZ5RVWHVLTC6ITI6 --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile . 
 
 # yay working
 docker run -d agent:v1
@@ -66,8 +67,8 @@ docker run -it --entrypoint /bin/bash agent:v1
 
 
 # export container for k0s later
-docker save agent:v1 | gzip > agentv1.tar.gz
-ls -la
+#docker save agent:v1 | gzip > agentv1.tar.gz
+#ls -la
 
 # new deployment with stateful services
 
@@ -109,8 +110,8 @@ kubectl create -f devops.yaml
 kubectl exec -it agent-ss-0 -- /bin/bash 
 # check if the keys appear
 ls /etc/ssh_keys
-# test out the connection
 
+## test out the connection
 # use the SSH key for github 
 set GIT_SSH_COMMAND 'ssh -i key -o IdentitiesOnly=yes'
 
@@ -139,6 +140,7 @@ kubectl delete svc/mud-svc
 
 kubectl get po
 kubectl get events
+# nope...
 
 ## setup registry
 # - So its apparent i've made a mistake at this point
@@ -199,20 +201,51 @@ minikube ssh
 #>docker login registry-ss-0:5000 -u tama -p bigdoglol
 
 # secret from docker file copied over
+kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a -o=yaml --dry-run=client
 # you could create the secret like the one above 
 kubectl create secret generic docker-registry --from-file=.dockerconfigjson=secrets/dockerconfig.json --type=kubernetes.io/dockerconfigjson
 
 # patch service account for new secret
 kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-registry\"}]}"  
 
-# TODO maybe mount the secret config onto the agent
-# this is needed because it will need to use docker push
-
 # test it out
 kubectl exec -it agent-ss-0 -- /bin/bash
+kubectl exec -it registry-ss-0 -- sh
+docker pull nginx
+docker tag nginx:latest registry-ss-0:5000/mynginx:v1
+docker push registry-ss-0:5000/mynginx:v1
 
+## nuke it, trying with pods
+minikube delete
+minikube start --kubernetes-version=1.23.9
+
+# trying with new hostname
+kubectl apply -f devops.yaml
+
+# the node cannot read the fqdn :( needs manual assignment
+# pods can connect however, going to need a short name for the cert 
+nslookup registry-svc.default.svc.cluster.local
+nslookup 10.110.49.138.default.pod.cluster.local
+
+minikube ssh
+sudo su
+# modify hosts to match the hostname of the cert
+echo "10.110.49.138 registry" >> /etc/hosts
+# change node docker to use the new registry from the pod
+export REGISTRY_NAME="registry"
+export REGISTRY_IP="10.110.49.138"
+# store the certs for auth
+mkdir -p /etc/docker/registry:5000/
+#^D
+minikube cp ./secrets/tls.crt /etc/docker/registry:5000/tls.crt
+minikube ssh
+docker login registry:5000 
+
+# TODO maybe mount the secret dockerconfig onto the agent
+# this is needed because it will need to use docker push
 # TODO modify agent with docker env and certificate test login
 # TODO could just mount the certs into the docker cert path
+
 
 
 
