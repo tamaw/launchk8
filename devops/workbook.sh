@@ -128,4 +128,91 @@ kubectl exec -it agent-ss-0 -- /bin/bash
 cd /var/_work
 kubectl create -f mud-deployment.yaml
 
+# can docker even run the image itself?
+
+kubectl get deployments
+kubectl get po
+kubectl describe po/mud-deploy-d8c7df779-bb5k2
+
+kubectl delete deploy/mud-deploy
+kubectl delete svc/mud-svc
+
+kubectl get po
+kubectl get events
+
+## setup registry
+# - So its apparent i've made a mistake at this point
+# we cant tell the node to use the pods unix socket to deploy to k8s
+# or else we're just deploying to the other pod lol
+# - the docker images are only sharable via a registry
+# so we'll have to tell the nodes docker to pull from another registry
+# this will probably help with k0s later anyhow
+
+## new registry running in a pod
+# new self signed certificate
+openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout secrets/tls.key -out secrets/tls.crt -subj "/CN=registry-ss-0" -addext "subjectAltName = DNS:registry-ss-0"
+kubectl create secret tls registry-cert --cert=secrets/tls.crt --key=secrets/tls.key
+
+# new htaccess file
+docker run --rm --entrypoint htpasswd registry:2.6.2 -Bbn tama bigdoglol > secrets/htpasswd
+kubectl create secret generic registry-auth --from-file=secrets/htpasswd
+
+# redeploy
+kubectl delete -f devops.yaml
+kubectl create -f devops.yaml
+kubectl get po -o wide
+kubectl describe po/registry-ss-0
+
+# is the registry deployed successfull - should see some json
+kubectl exec -it registry-ss-0 -- sh
+wget --no-check-certificate --header "Authorization: Basic $(echo -n 'tama:bigdoglol' | base64)" https://registry-ss-0:5000/v2/_catalog
+cat _catalog
+rm _catalog
+
+## setup the node (this part is ugly)
+# - minikube has it's own docker namespace with it's own docker certs
+# and you have to dump them all for your own unless you go insecure
+# - the node doesn't have coredns to resolve the stateless service name
+# removed clusterIP for now
+
+# get the registry ip
+kubectl get svc
+# registry is 10.106.80.7:5000
+minikube ssh
+# change node docker to use the new registry from the pod
+export REGISTRY_NAME="registry-ss-0"
+export REGISTRY_IP="10.106.80.7"
+# modify hosts to match the hostname of the cert
+echo "10.106.80.7 registry-ss-0" >> /etc/hosts
+# test it we can connect without certificate
+wget --no-check-certificate --header "Authorization: Basic $(echo -n 'tama:bigdoglol' | base64)" https://registry-ss-0:5000/v2/_catalog
+cat _catalog
+rm _catalog
+# now put our certs on there
+minikube ssh
+sudo su
+mkdir -p /etc/docker/certs.d/registry-ss-0:5000
+# copy file to the node (host)
+minikube cp ./secrets/tls.crt /home/docker/tls.cert
+# logging in will create a ~/.docker/config.json which the node will use
+minikube ssh
+#>docker login registry-ss-0:5000 -u tama -p bigdoglol
+
+# secret from docker file copied over
+# you could create the secret like the one above 
+kubectl create secret generic docker-registry --from-file=.dockerconfigjson=secrets/dockerconfig.json --type=kubernetes.io/dockerconfigjson
+
+# patch service account for new secret
+kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-registry\"}]}"  
+
+# TODO maybe mount the secret config onto the agent
+# this is needed because it will need to use docker push
+
+# test it out
+kubectl exec -it agent-ss-0 -- /bin/bash
+
+# TODO modify agent with docker env and certificate test login
+# TODO could just mount the certs into the docker cert path
+
+
 

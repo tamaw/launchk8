@@ -61,7 +61,7 @@ spec:
   selector:
     matchLabels:
       run: docker
-  serviceName: docker-ss
+  serviceName: docker-svc
   replicas: 1
   template:
     metadata:
@@ -189,3 +189,78 @@ spec:
         secret:
           defaultMode: 292
           secretName: ssh-key-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-svc
+  labels:
+    role: devops
+spec:
+  # clusterIP: None
+  selector:
+    run: registry
+  ports:
+  - ports:
+    port: 5000
+    targetPort: 5000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: registry-ss
+  labels:
+    role: devops
+spec:
+  selector:
+    matchLabels:
+      run: registry
+  serviceName: registry-svc
+  replicas: 1
+  template:
+    metadata:
+      name: registry
+      labels:
+        run: registry
+        role: devops
+    spec:
+      containers:
+      - name: docker
+        env:
+        - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+          value: /var/registry
+        - name: REGISTRY_AUTH
+          value: htpasswd
+        - name: REGISTRY_AUTH_HTPASSWD_REALM
+          value: basic_realm
+        - name: REGISTRY_AUTH_HTPASSWD_PATH
+          value: /etc/auth/htpasswd
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          value: /etc/certs/tls.crt
+        - name: REGISTRY_HTTP_TLS_KEY
+          value: /etc/certs/tls.key
+        image: registry:2
+        ports:
+        - containerPort: 5000
+          name: docker-port
+        volumeMounts:
+          - name: vol0-vol
+            mountPath: /var/registry
+            subPath: registry
+          - name: certs-vol
+            mountPath: /etc/certs
+            readOnly: true
+          - name: auth-vol
+            mountPath: /etc/auth
+            readOnly: true
+      volumes:
+        - name: vol0-vol
+          persistentVolumeClaim:
+            claimName: vol0-pvc
+        - name: certs-vol
+          secret:
+            secretName: registry-cert
+        - name: auth-vol
+          secret:
+            secretName: registry-auth
+---
