@@ -63,6 +63,10 @@ spec:
       - name: local-vol
         mountPath: /var/socket
         subPath: socket
+      - name: local-vol
+        mountPath: /etc/docker/certs.d/
+        subPath: pub_certs
+        readOnly: true
   volumes:
     - name: local-vol
       persistentVolumeClaim:
@@ -134,6 +138,14 @@ spec:
     - name: ssh-keys-vol
       readOnly: true
       mountPath: /etc/ssh_keys
+  initContainers:
+  - name: docker-sock-init
+    image: debian:latest
+    command: ['/bin/bash', '-c', 'cd /var/socket && until test -e "docker.sock"; do sleep 1; done; chmod 660 docker.sock && chown 1000:1000 docker.sock' ]
+    volumeMounts:
+    - name: local-vol
+      mountPath: /var/socket/
+      subPath: socket
   volumes:
   - name: local-vol
     persistentVolumeClaim:

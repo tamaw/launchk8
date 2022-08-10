@@ -219,33 +219,50 @@ docker push registry-ss-0:5000/mynginx:v1
 minikube delete
 minikube start --kubernetes-version=1.23.9
 
+# new certs for registry
+openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout secrets/tls.key -out secrets/tls.crt -subj "/CN=registry-svc.default.svc.cluster.local" -addext "subjectAltName = DNS:registry-svc.default.svc.cluster.local"
+kubectl create secret tls registry-cert --cert=secrets/tls.crt --key=secrets/tls.key
+
 # trying with new hostname
-kubectl apply -f devops.yaml
+kubectl create -f devops.yaml
+
+# TODO improve the docker sock file permissions on mount
+minikube ssh
+sudo su
+chown 666 /var/local-vol/socket/docker.sock
+#^D
 
 # the node cannot read the fqdn :( needs manual assignment
 # pods can connect however, going to need a short name for the cert 
 nslookup registry-svc.default.svc.cluster.local
 nslookup 10.110.49.138.default.pod.cluster.local
 
+kubectl get svc # get ip of registry
+
 minikube ssh
 sudo su
 # modify hosts to match the hostname of the cert
-echo "10.110.49.138 registry" >> /etc/hosts
+echo "10.97.114.213 registry-svc.default.svc.cluster.local" >> /etc/hosts
 # change node docker to use the new registry from the pod
-export REGISTRY_NAME="registry"
-export REGISTRY_IP="10.110.49.138"
+export REGISTRY_NAME="registry-svc.default.svc.cluster.local"
+export REGISTRY_IP="10.97.114.213"
 # store the certs for auth
-mkdir -p /etc/docker/registry:5000/
+mkdir -p /etc/docker/registry-svc.default.svc.cluster.local:5000/
 #^D
-minikube cp ./secrets/tls.crt /etc/docker/registry:5000/tls.crt
+minikube cp ./secrets/tls.crt /etc/docker/registry-svc.default.svc.cluster.local:5000/tls.crt
 minikube ssh
-docker login registry:5000 
+# login with the node
+docker login registry-svc.default.svc.cluster.local:5000 
+#^D
+kubectl exec -it agent -- sh
+docker login registry-svc.default.svc.cluster.local:5000 
+# agent needs client cert loaded
+
 
 # TODO maybe mount the secret dockerconfig onto the agent
-# this is needed because it will need to use docker push
+# this is needed because it will need to use docker push from github
 # TODO modify agent with docker env and certificate test login
 # TODO could just mount the certs into the docker cert path
-
 
 
 
