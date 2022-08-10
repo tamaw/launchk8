@@ -1,4 +1,4 @@
-name: Test dind in k8s
+name: Mud App
 
 on:
   push:
@@ -25,3 +25,6 @@ jobs:
 
     - name: push image to internal repo
       run: docker push registry-svc.default.svc.cluster.local:5000/mud:tama
+    
+    - name: rollout deployment
+      run: kubectl set image deployment/mud-deploy mud-app=registry-svc.default.svc.cluster.local:5000/mud:tama
