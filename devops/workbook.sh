@@ -219,20 +219,24 @@ docker push registry-ss-0:5000/mynginx:v1
 minikube delete
 minikube start --kubernetes-version=1.23.9
 
+# TODO could better automate the certificates with cnf files and
+
 # new certs for registry
 openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout secrets/tls.key -out secrets/tls.crt -subj "/CN=registry-svc.default.svc.cluster.local" -addext "subjectAltName = DNS:registry-svc.default.svc.cluster.local"
 kubectl create secret tls registry-cert --cert=secrets/tls.crt --key=secrets/tls.key
+#kubectl create secret generic registry-pub-cert --from-file=secrets/tls.crt 
 
 # trying with new hostname
 kubectl create -f devops.yaml
+kubectl delete -f devops.yaml
 
-# TODO improve the docker sock file permissions on mount
-minikube ssh
-sudo su
-chown 666 /var/local-vol/socket/docker.sock
+# below replaced with init container
+#minikube ssh
+#sudo su
+#chown 666 /var/local-vol/socket/docker.sock
 #^D
 
-# the node cannot read the fqdn :( needs manual assignment
+# the node cannot read the fqdn :( needs manual assignment of name
 # pods can connect however, going to need a short name for the cert 
 nslookup registry-svc.default.svc.cluster.local
 nslookup 10.110.49.138.default.pod.cluster.local
@@ -242,27 +246,107 @@ kubectl get svc # get ip of registry
 minikube ssh
 sudo su
 # modify hosts to match the hostname of the cert
-echo "10.97.114.213 registry-svc.default.svc.cluster.local" >> /etc/hosts
+echo "10.109.90.217 registry-svc.default.svc.cluster.local" >> /etc/hosts
 # change node docker to use the new registry from the pod
 export REGISTRY_NAME="registry-svc.default.svc.cluster.local"
-export REGISTRY_IP="10.97.114.213"
+export REGISTRY_IP="10.109.90.217"
 # store the certs for auth
-mkdir -p /etc/docker/registry-svc.default.svc.cluster.local:5000/
+mkdir -p /etc/docker/certs.d/registry-svc.default.svc.cluster.local:5000/
 #^D
-minikube cp ./secrets/tls.crt /etc/docker/registry-svc.default.svc.cluster.local:5000/tls.crt
+
+# copy public cert to have the node read the registry 
+minikube cp ./secrets/tls.crt /etc/docker/certs.d/registry-svc.default.svc.cluster.local:5000/tls.crt
+# test
+docker login registry-svc.default.svc.cluster.local:5000 
+
+# lets have the agent read the registry 
+minikube ssh
+
+sudo mkdir -p /var/local-vol/pub_certs/registry-svc.default.svc.cluster.local:5000/
+#^D
+minikube cp ./secrets/tls.crt /var/local-vol/pub_certs/registry-svc.default.svc.cluster.local:5000/ca.crt
+
+# test with node
 minikube ssh
 # login with the node
 docker login registry-svc.default.svc.cluster.local:5000 
 #^D
+
+# test with agent
 kubectl exec -it agent -- sh
+ls /etc/docker/certs.d/registry-svc.default.svc.cluster.local:5000
 docker login registry-svc.default.svc.cluster.local:5000 
-# agent needs client cert loaded
 
+## Another mistake lol
+# put the certificate on the agent not the docker host
+# move it to the docker pod and it worked
 
+# test out the docker
+docker pull nginx
+docker tag nginx:latest registry-svc.default.svc.cluster.local:5000/mynginx
+docker push registry-svc.default.svc.cluster.local:5000/mynginx
+# works!
+
+# TODO use the cert manager
+# TODO attempt fsgroups for file permission
 # TODO maybe mount the secret dockerconfig onto the agent
-# this is needed because it will need to use docker push from github
-# TODO modify agent with docker env and certificate test login
-# TODO could just mount the certs into the docker cert path
+# TODO !! not convinced the SSH key is working as intended on the actions
+
+## deploy mud from the agent first
+# copy the file over into a work directory for now
+
+minikube cp ./apps/mud-deployment.yaml /var/local-vol/_work/mud-deployment.yaml
+# check if it's copied
+minikube ssh
+ls /var/local-vol/_work
+
+# see if we can deploy it
+kubectl exec -it agent -- sh
+# is kube still working from the agent
+kubectl get po
+
+# just straight from the command line
+kubectl run mud-app --image registry-svc.default.svc.cluster.local:5000/mud:tama --port=8888
+kubectl get po
+exit
+kubectl describe po/mud-app
+minikube ssh
+
+# when deploying from the agent, the node needs to reach the regsitry
+
+# maybe try deploying from the host again with a secret
+# make the secret again
+kubectl create secret docker-registry registry --docker-server=registry-svc.default.svc.cluster.local:5000 --docker-username=tama --docker-password=bigdoglol --docker-email=a@a #-o=yaml --dry-run=client
+
+# default the service account for the agent to our registry
+kubectl patch serviceaccount devops-sa -p "{\"imagePullSecrets\": [{\"name\": \"registry\"}]}"  
+
+# try deploy the yaml
+# setup the mud data
+minikube ssh
+mkdir -p /var/local-vol/mud_data
+exit
+minikube cp repos/mud/data/help.txt /var/local-vol/mud_data
+# deploy mud as a deployment
+kubectl create -f apps/mud-deployment.yaml
+kubectl get po
+kubectl describe po/mud-deploy-6cfdb5f966-5zcl5
+# yay deployed successfully
+# test it out
+kubectl get svc
+minikube ip
+telnet 192.168.49.2 31128
+
+# test connectivity
+kubectl get svc
+kubectl delete deployments/mud-deploy
+
+# test single line change to update from github
+kubectl get deployments
+kubectl set image deployment/mud-deploy mud-app=registry-svc.default.svc.cluster.local:5000/mud:tama
+# works if the image changes
+
+# launch on github!
 
 
 

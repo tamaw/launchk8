@@ -9,25 +9,31 @@ spec:
   replicas: 3
   selector:
     matchExpressions:
-      - { key: run, operator: In, values: [mud] }
+      - { key: app, operator: In, values: [mud] }
   template:
     metadata:
       labels:
-        run: mud
+        run: mud-server-exe
         app: mud
         role: app
     spec:
       containers:
       - name: mud-app
-        image: mud:tama
+        image: registry-svc.default.svc.cluster.local:5000/mud:tama
         volumeMounts:
-        - name: vol0-pvc
+        - name: local-vol
           mountPath: /var/lib/mud/data
-          subPath: mud-data
+          subPath: mud_data
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
+      imagePullSecrets:
+      - name: registry
+      volumes:
+      - name: local-vol
+        persistentVolumeClaim:
+          claimName: local-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -37,8 +43,9 @@ metadata:
     role: app
     app: mud
 spec:
+  type: NodePort
   selector:
-    run: mud
+    run: mud-server-exe
   ports:
   - protocol: TCP
     port: 8888
