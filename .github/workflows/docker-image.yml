@@ -17,6 +17,11 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: recursive
-    - name: build mud
+    - name: build mud with docker
       run: docker build -t mud:tama -f repos/mud/server/Dockerfile --target runtime repos/mud/server
     
+    - name: tag image with our repository
+      run: docker tag mud:tama registry-svc.default.svc.cluster.local:5000/mud:tama
+
+    - name: push image to internal repo
+      run: docker push registry-svc.default.svc.cluster.local:5000/mud:tama
