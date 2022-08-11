@@ -802,12 +802,153 @@ kubectl get cm/myconfig1 -o yaml
 #   - for example minikube uses nginx which should be deployed on a pod
 # - fanout - different paths go to different pods
 # - rewrite-target - changes the path to what the backend service expects
-# 
+# - often deployed in a different namespace and can see all ingress rules
+# - cannot define ingress port (80,443 only) 
+# - hostname only takes domain names, hostname omitted is a wildcard
+# - nginx can reroute to https by default 
+# - can specify backend: for a default backend
+# - name based virtual hosting with tls requires server name indication
+# - you can point to a secret to assign a certificate with tls:
 
-minikube addons enable ingress
+
+# build ingress 
+minikube addons enable ingress 
 kubectl get po -n ingress-nginx
 kubectl create -f ingress-demo.yaml
-kubectl get po
-curl 
+kubectl apply -f ingress-demo.yaml
+
+# test to see if its deployed 
+kubectl get ingress
+kubectl get service
+kubectl describe ing/demo-ingress
+
+minikube ip
+sudo echo "$(minikube ip) demo.example" >> /etc/hosts
+
+## Network policy
+# - restrict who can communicate with a pod
+# - secure multi-tenant clusters by limiting namespaces
+# - pod level firewall
+# - egress - network traffic leaving the cluster
+# - ingress - network traffic originating from the pods
+# - create a NetworkPolicy kind
+#   - rules apply to the pods selected by the podSelector
+# - you can select pods by; podSelector, NamespaceSelector & ipBlock
+# - many network policies which are unioned together in the cluster
+# - you can select all pods with podSelector: {}
+#   - this way you deny by default
+# - missing ingress/egress rules will block all traffic
+# - you can supply ingress/egress with an empty rule {} to allow traffic
+# - if you omit policy type, ingress is default supplied
+# - policies aren't enabled by default, 
+# - big increase in memory footprint, avoid with small cloud plans
+# - there are lots of different network plugins 
+#   - not enabled by default on minikube
+
+
+## Security Context
+# pods:
+# - optional field, but should apply anyway
+# - you can specify the user to run securityContext: runAsUser: <id>
+# - must specify the user id not the name
+# - to avoid running as root you can use the runAsNonRoot
+# containers:
+# - also has the same runasuser fields for just the container
+# - priviledged mode gives access to some kernel functionality
+# - you can set kernel capaibilities under the securtity context
+#   - print capaibilities with capsh
+#   - you can add or drop these capabilities
+#   - you drop cap_ when specifying
+#   - can drop: -all & add what you want
+#   - only applys to root users
+# - good idea to set the root folder in containers to read only
+#   - mounted volumes can still be mounted to be writable
+#   - readOnlyRootFilesystem: true
+# - can individually request more priviledges than pod configuration
+kubectl exec -it ubuntu -- bash
+# create user with a group
+groupadd app
+useradd -g app admin
+su admin
+id # uid=1001 guid=1001
+exit
+# modified securtyContext
+kubectl create -f ../devops/test-pod.yaml
+kubectl exec -it ubuntu -- bash
+# show capabilities
+capsh --print
+
+## Resource Limits
+# - by default uses as much as it can
+# - you can set a lower & upper bound
+# - cpu resources
+#   -> cores 1 / 0.5
+#   -> milicpus 500m (thousandths of a core. 50% of 1 core)
+# - memory
+#   -> bytes 
+#   -> SI units (powers of 10) K,M,G,T
+#   -> power of 2 units Ki,Mi,Gi,Ti
+# - upper bounds are specified with limits: 
+# - lower bounds are specified with requests: 
+# - nodes can oversubscribe leaving unrequest resources used
+# - a pods resource request is the sum of all of it's containers requests
+# - node will be scheduled on a node with available resources
+#   - if it doesn't have the resources, it will wait until it's free
+# - these arent hard limits and containers can be cpu throttled or killed
+#   - however, out of memory will kill it with OOM killer
+# - Quality of Service - specifies which is least important to be killed
+# - QoS are assigned by what resource it requests 
+#   - is either guarantee, burstable or best effort
+#   - can be seen with the describe
+#   - guarantee request = limit or limit is specified 
+#   - burstable has different limit and guarantee
+#   - best effort does not specify any requests or limits
+# - global default
+# - used with kind limitRange (min, max and default)
+#  - you can also specify a min and max for the namespace
+#  - if you go above, the container wont schedule on the namespace
+kubectl create -f limit-range.yaml
+kubectl get namespaces
+kubectl get po -n gogogadget
+kubectl describe -n gogogadget po/ubuntu
+# should see default and qos as burstable
+kubectl delete namespace/gogogadget
+
+# get the resources you can schedule on a node
+# look at capacity
+kubectl describe nodes
+
+## autoscaling
+# - can manually do it with setting the sscale
+# - HPA (Horizontal Pod Autoscaler)
+#   - object - defines behaviour via metrics which the controller uses
+#     - metrics: average cpu utilisation or value
+#   - controller - scales the # pods in replica set
+#   - targets deployments, replicasets and controllers
+# - HPAs can get data from the metrics api
+# - custom metrics - come from a more advance metric server
+# - scales it up or down to reach an average of the utilisation metric
+# - you can target a percentage of resources instead
+
+minikube addons enable metrics-server
+kubectl top nodes
+
+# lets scale a fork bomb lol
+kubectl create -f hpa.yaml
+
+kubectl exec -it -n gogogadget go-deploy-564b49fc98-jtpdm -- /bin/bash
+# :(){ :|:& };:
+# check it out
+kubectl get po -n gogogadget -w
+kubectl get po -n gogogadget 
+# it scaled lol
+kubectl get events -n gogogadget
+# the forkbombs get killed eventually from running out of memory OOM
+
+# you can use a command
+kubectl autoscale deployment go-deploy --min=1 --max=5 --cpu-percent=50
+
+
+
 
 

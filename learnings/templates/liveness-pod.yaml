@@ -7,8 +7,6 @@ spec:
   - name: readyme
     image: alpine:latest
     command: [ "/bin/sleep", "9999" ]
-    # command: [ "/bin/sh", "-c" ]
-    # args: ["/bin/touch /tmp/file && sleep 9999" ]
     lifecycle:
       postStart:
         exec:
