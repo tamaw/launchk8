@@ -993,12 +993,15 @@ kubectl taint node minikube key=val:PreferNoSchedule-
 
 # tolerationSeconds - pod will remain no the node once tainted
 
-
-
-
-
-
-
-
+## Best Practises
+# - avoid using the latest tag on images
+# - direct application log messages to STDOUT or STDERROR
+# - setup cluster logging 
+# - avoid adding fields with default values to minimise the complexity
+# - container should have one purpose
+# - always use a controller to create/manage pods
+# - beware of 3rd party images, you can also run security scans
+# - avoid being root on the container
+# - make the filesystem read only if you can
 
 
