@@ -348,5 +348,3 @@ kubectl set image deployment/mud-deploy mud-app=registry-svc.default.svc.cluster
 
 # launch on github!
 
-
-
