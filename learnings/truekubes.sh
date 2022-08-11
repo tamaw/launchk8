@@ -948,6 +948,56 @@ kubectl get events -n gogogadget
 # you can use a command
 kubectl autoscale deployment go-deploy --min=1 --max=5 --cpu-percent=50
 
+kubectl delete namespace/gogogadget
+# watch out for "thrashing" 
+# - scaling up and down too soon,  overshooting requirements
+# - comes with a scale down delay (default 5m)
+# - you can change the downscale delay
+
+# Control which pods get scheduled on which nodes
+# - the node could have different capabilities such as SSD or more memory
+# - you can use Affinity
+#   - node affinity - scheduled on nodes with specific labels
+#   - pod affinity - schedule pods where other pods are schedueled
+#   - anti-affinity - don't put two pods on the same node 
+# - two varients:
+#   - requiredDuringSchedulingIgnoredDuringExecution
+#   - preferredDuringSchedulingIgnoredDuringExecution
+#   - pods wont unschedule if the node no longer meets the requirements
+#   - preferred may not meet all requirements when scheduling to a node
+# - weight: each requirement can have a weight. weight: 1
+#   - k8s will try find a node which matches the height weight
+# - topology - required. what consisutes colocation
+#   - could be the same machine, cloud provider, region etc
+#   - could have different keys for different providers
+#   - kuberentes.io/hostname - is the same node
+# - namespaces, can also schedule on different namespaces.
+#  - omitted, it will go from whats in the config
+
+# taints and tolerances
+# taint - similar to a label
+#   - makes other pods avoid it
+# tolerances - how much a pod can take
+# three types of effects(noschedule, prefernoschedule, noexecute)
+# noexcute will evict intolerant pods
+
+# add label to node
+kubectl label node minikube speed=fast
+# add taint to node 
+# node = target type, target label, taint = key, value, effect
+kubectl taint node -l speed=fast reservation=store:noschedule
+#or
+kubectl taint node minikube key=val:PreferNoSchedule
+# to remove the taint (minus sign at the end)
+kubectl taint node minikube key=val:PreferNoSchedule-
+
+# tolerationSeconds - pod will remain no the node once tainted
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-af
+spec:
+  containers:
+  - name: nginx
+    image: ngingx:latest
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+            - key: storage-type
+              operator: ssd
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 4
+        preference:
+          matchExpressions:
+            - key: speed
+              operator: In
+              values:
+                - fast
+      - weight: 2
+        preference:
+          matchExpressions:
+            - key: speed
+              operator: In
+              values:
+                - slow
+
