@@ -138,9 +138,12 @@ spec:
     - name: ssh-keys-vol
       readOnly: true
       mountPath: /etc/ssh_keys
+    - name: docker-config-vol
+      readOnly: true
+      mountPath: /home/agent/.docker
   initContainers:
   - name: docker-sock-init
-    image: debian:latest
+    image: debian:bullseye
     command: ['/bin/bash', '-c', 'cd /var/socket && until test -e "docker.sock"; do sleep 1; done; chmod 660 docker.sock && chown 1000:1000 docker.sock' ]
     volumeMounts:
     - name: local-vol
@@ -150,6 +153,12 @@ spec:
   - name: local-vol
     persistentVolumeClaim:
       claimName: local-pvc
+  - name: docker-config-vol
+    secret:
+      secretName: registry
+      items:
+      - key: .dockerconfigjson
+        path: config.json
   - name: ssh-keys-vol
     secret:
       defaultMode: 292
