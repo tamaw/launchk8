@@ -20,10 +20,6 @@ jobs:
     - name: build mud with docker
       run: docker build -t mud:${{ github.run_id }} -f repos/mud/server/Dockerfile --target runtime repos/mud/server
 
-  deploy:
-    runs-on: self-hosted
-
-    steps:
     - name: tag image with our repository
       run: docker tag mud:tama registry-svc.default.svc.cluster.local:5000/mud:${{ github.run_id }}
 
