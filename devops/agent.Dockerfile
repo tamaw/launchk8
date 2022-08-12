@@ -26,6 +26,10 @@ RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/s
     && mv ./kubectl /usr/local/bin
 
 USER agent
+
+RUN mkdir -p ~/.ssh && \
+    ssh-keyscan -t ecdsa github.com >> ~/.ssh/known_hosts
+
 # ignores failure if already registered
 RUN cd /opt/actions-runner \
     && ./config.sh --unattended --url ${RUNNER_GITHUB_URL} --token ${RUNNER_TOKEN} --labels ${RUNNER_LABELS} --replace --work ${RUNNER_WORKDIR} || echo
