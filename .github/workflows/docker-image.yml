@@ -14,9 +14,11 @@ jobs:
     steps:
     - name: Checkout repository and submodules
       uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        ssh-key: fakekey
+
+    - name: checkout submodules
+      run: |
+        git submodule sync --recursive
+        git submodule update --init --force --recursive --depth=1
 
     - name: build mud with docker
       run: docker build -t mud:${{ github.run_id }} -f repos/mud/server/Dockerfile --target runtime repos/mud/server
