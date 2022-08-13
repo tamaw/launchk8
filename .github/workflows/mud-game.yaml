@@ -1,0 +1,33 @@
+name: Mud App
+
+on:
+  workflow_dispatch
+
+jobs:
+
+  build:
+    runs-on: self-hosted
+
+    steps:
+    - name: Set Environment Variables
+      uses: ./.github/actions/setenvvars
+      with:
+        varFilePath: ./.github/variables/clustervars.env
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Checkout submodules
+      uses: ./.github/actions/gitsubmodules
+
+    - name: build mud with docker
+      run: docker build -t mud:${{ github.run_id }} -f repos/mud/server/Dockerfile --target runtime repos/mud/server
+
+    - name: tag image with our repository
+      run: docker tag mud:${{ github.run_id }} ${{ env.CLUSTER_URN }}/mud:${{ github.run_id }}
+
+    - name: push image to internal repo
+      run: docker push ${{ env.CLUSTER_URN }}/mud:${{ github.run_id }}
+
+    - name: rollout deployment
+      run: kubectl set image deployment/mud-deploy mud-app=${{ CLUSTER_URN }}/mud:${{ github.run_id }}
