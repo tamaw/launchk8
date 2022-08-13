@@ -35,14 +35,19 @@ kubectl create secret generic ssh-key-secret --from-file=ssh-github=secrets/key 
 ## Image Registry
 # Replace host name below and create the certificate
 openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout secrets/tls.key -out secrets/tls.crt -subj "/CN=registry-svc.devops.svc.cluster.local" -addext "subjectAltName = DNS:registry-svc.devops.svc.cluster.local"
-
 # save the certificate as a secret
 kubectl create secret tls registry-cert --cert=secrets/tls.crt --key=secrets/tls.key 
+# load the certificate on for docker to auth the registry
+minikube ssh
+sudo mkdir -p /var/local-vol/pub_certs/registry-svc.devops.svc.cluster.local:5000/
+exit
+minikube cp ./secrets/tls.crt /var/local-vol/pub_certs/registry-svc.devops.svc.cluster.local:5000/ca.crt
+
 # Replace username/password & create htpasswd for login
 docker run --rm --entrypoint htpasswd registry:2.6.2 -Bbn devops password > secrets/htpasswd
-# Create a secret the register will use
+# Save the htpasswd so the register can use it
 kubectl create secret generic registry-auth --from-file=secrets/htpasswd 
-# create the secret clients will use
+# Save the htpasswd so the clients can use it
 kubectl create secret docker-registry registry --docker-server=registry-svc.devops.svc.cluster.local:5000 --docker-username=devops --docker-password=password --docker-email=a@a #-o=yaml --dry-run=client
 # create service account for next step
 kubectl create serviceaccount devops-sa

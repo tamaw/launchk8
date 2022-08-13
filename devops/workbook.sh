@@ -1,6 +1,6 @@
 ## Project
 
-# architecture 
+# architecture
 # - docker in docker - runs builds in docker and hosts images
 # - agent - github connection
 # - Separate docker build with
@@ -19,7 +19,7 @@ minikube ssh
 # setup local minikube to test
 minikube start --kubernetes-version=1.23
 
-# deploy 
+# deploy
 kubectl delete -f devops.yaml
 kubectl create -f devops.yaml
 kubectl apply -f devops.yaml
@@ -46,23 +46,23 @@ eval $(minikube docker-env)
 docker info
 
 # create our github runner docker image
-docker build -t agent:dev -f agent.Dockerfile . 
-# just a quick repo build for now 
+docker build -t agent:dev -f agent.Dockerfile .
+# just a quick repo build for now
 docker image ls
 docker container ls
-# install manually to build script and see dependecies we need 
+# install manually to build script and see dependecies we need
 docker run -it agent:latest /bin/bash
 # build the docker file up to run
 docker run agent:dev
 
 # build again with token - tokens expire in 1 hour
 # !! in minikube docker
-docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX2L4LHS7IZ5RVWHVLTC6ITI6 --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile . 
+docker build -t agent:v1 --build-arg RUNNER_TOKEN=AADQVX2L4LHS7IZ5RVWHVLTC6ITI6 --build-arg RUNNER_GITHUB_URL=https://github.com/tamaw/launchk8 --build-arg RUNNER_LABELS= -f agent.Dockerfile .
 
 # yay working
 docker run -d agent:v1
-# remove for now 
-docker run -it --entrypoint /bin/bash agent:v1 
+# remove for now
+docker run -it --entrypoint /bin/bash agent:v1
 ./config.sh remove --token AADQVX75PVWVJYQUACL3FMLC55FUI
 
 
@@ -73,31 +73,31 @@ docker run -it --entrypoint /bin/bash agent:v1
 # new deployment with stateful services
 
 # register the dind docker as a repo, create a secret pointing to it and pull image
-kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a 
+kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a
 kubectl delete secret docker-dind
 kubectl delete po/test-dind
 kubectl create -f test-pod.yaml
 kubectl get po
 kubectl describe po/test-dind
-kubectl exec -it test-dind -- /bin/bash 
+kubectl exec -it test-dind -- /bin/bash
 # save yaml
 kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a -o=yaml --dry-run=client
 
 # put secret into the yaml
 
 # can the agent deploy from dind ?
-kubectl exec -it agent-ss-0 -- /bin/bash 
+kubectl exec -it agent-ss-0 -- /bin/bash
 cd /var/socket # test.yaml is here
 kubectl create -f test.yaml
 kubectl get po
 
 # back to local machine for permission to read events
-kubectl descibe po/test 
+kubectl descibe po/test
 kubectl get events
 kubectl create -f test.yaml
 
 # can then try assign the secret to the service account for the deployment role
-kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-dind\"}]}"  
+kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-dind\"}]}"
 
 # think about deployment permissions
 
@@ -107,12 +107,12 @@ kubectl create secret generic ssh-key-secret --from-file=ssh-github=key --from-f
 # !! upload .pub to github
 kubectl delete -f devops.yaml
 kubectl create -f devops.yaml
-kubectl exec -it agent-ss-0 -- /bin/bash 
+kubectl exec -it agent-ss-0 -- /bin/bash
 # check if the keys appear
 ls /etc/ssh_keys
 
 ## test out the connection
-# use the SSH key for github 
+# use the SSH key for github
 set GIT_SSH_COMMAND 'ssh -i key -o IdentitiesOnly=yes'
 
 # TODO: need to fix some of the file permissions up for the secrets and sockets
@@ -125,7 +125,7 @@ kubectl apply -f devops.yaml
 
 # created mud-deployment.yaml - should source it via the service account patch
 kubectl cp ../apps/mud-deployment.yaml agent-ss-0:/var/_work
-kubectl exec -it agent-ss-0 -- /bin/bash 
+kubectl exec -it agent-ss-0 -- /bin/bash
 cd /var/_work
 kubectl create -f mud-deployment.yaml
 
@@ -195,18 +195,18 @@ minikube ssh
 sudo su
 mkdir -p /etc/docker/certs.d/registry-ss-0:5000
 # copy file to the node (host)
-minikube cp ./secrets/tls.crt /home/docker/tls.cert
+minikube cp ./secrets/tls.crt /home/docker/tls.crt
 # logging in will create a ~/.docker/config.json which the node will use
 minikube ssh
 #>docker login registry-ss-0:5000 -u tama -p bigdoglol
 
 # secret from docker file copied over
 kubectl create secret docker-registry docker-dind --docker-server=unix:///var/local-vol0/socket/docker.sock --docker-username=a --docker-password=a --docker-email=a -o=yaml --dry-run=client
-# you could create the secret like the one above 
+# you could create the secret like the one above
 kubectl create secret generic docker-registry --from-file=.dockerconfigjson=secrets/dockerconfig.json --type=kubernetes.io/dockerconfigjson
 
 # patch service account for new secret
-kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-registry\"}]}"  
+kubectl patch serviceaccount internal-kubectl -p "{\"imagePullSecrets\": [{\"name\": \"docker-registry\"}]}"
 
 # test it out
 kubectl exec -it agent-ss-0 -- /bin/bash
@@ -224,7 +224,7 @@ minikube start --kubernetes-version=1.23.9
 # new certs for registry
 openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout secrets/tls.key -out secrets/tls.crt -subj "/CN=registry-svc.default.svc.cluster.local" -addext "subjectAltName = DNS:registry-svc.default.svc.cluster.local"
 kubectl create secret tls registry-cert --cert=secrets/tls.crt --key=secrets/tls.key
-#kubectl create secret generic registry-pub-cert --from-file=secrets/tls.crt 
+#kubectl create secret generic registry-pub-cert --from-file=secrets/tls.crt
 
 # trying with new hostname
 kubectl create -f devops.yaml
@@ -237,7 +237,7 @@ kubectl delete -f devops.yaml
 #^D
 
 # the node cannot read the fqdn :( needs manual assignment of name
-# pods can connect however, going to need a short name for the cert 
+# pods can connect however, going to need a short name for the cert
 nslookup registry-svc.default.svc.cluster.local
 nslookup 10.110.49.138.default.pod.cluster.local
 
@@ -254,12 +254,12 @@ export REGISTRY_IP="10.109.90.217"
 mkdir -p /etc/docker/certs.d/registry-svc.default.svc.cluster.local:5000/
 #^D
 
-# copy public cert to have the node read the registry 
+# copy public cert to have the node read the registry
 minikube cp ./secrets/tls.crt /etc/docker/certs.d/registry-svc.default.svc.cluster.local:5000/tls.crt
 # test
-docker login registry-svc.default.svc.cluster.local:5000 
+docker login registry-svc.default.svc.cluster.local:5000
 
-# lets have the agent read the registry 
+# lets have the agent read the registry (should have been docker agent)
 minikube ssh
 
 sudo mkdir -p /var/local-vol/pub_certs/registry-svc.default.svc.cluster.local:5000/
@@ -269,13 +269,13 @@ minikube cp ./secrets/tls.crt /var/local-vol/pub_certs/registry-svc.default.svc.
 # test with node
 minikube ssh
 # login with the node
-docker login registry-svc.default.svc.cluster.local:5000 
+docker login registry-svc.default.svc.cluster.local:5000
 #^D
 
 # test with agent
 kubectl exec -it agent -- sh
 ls /etc/docker/certs.d/registry-svc.default.svc.cluster.local:5000
-docker login registry-svc.default.svc.cluster.local:5000 
+docker login registry-svc.default.svc.cluster.local:5000
 
 ## Another mistake lol
 # put the certificate on the agent not the docker host
@@ -319,7 +319,7 @@ minikube ssh
 kubectl create secret docker-registry registry --docker-server=registry-svc.default.svc.cluster.local:5000 --docker-username=tama --docker-password=bigdoglol --docker-email=a@a #-o=yaml --dry-run=client
 
 # default the service account for the agent to our registry
-kubectl patch serviceaccount devops-sa -p "{\"imagePullSecrets\": [{\"name\": \"registry\"}]}"  
+kubectl patch serviceaccount devops-sa -p "{\"imagePullSecrets\": [{\"name\": \"registry\"}]}"
 
 # try deploy the yaml
 # setup the mud data

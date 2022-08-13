@@ -1,7 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops
+---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: local-storage
+  namespace: devops
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
 ---
@@ -9,6 +15,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: local-pv
+  namespace: devops
 spec:
   capacity:
     storage: 2Gi
@@ -32,6 +39,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: local-pvc
+  namespace: devops
 spec:
   resources:
     requests:
@@ -41,46 +49,16 @@ spec:
   - ReadWriteOnce
 ---
 apiVersion: v1
-kind: Pod
-metadata:
-  name: docker
-  labels:
-    run: docker
-    role: devops
-spec:
-  containers:
-  - name: docker
-    env:
-      - name: DOCKER_HOST
-        value: unix:///var/socket/docker.sock
-    image: docker:dind
-    securityContext:
-      privileged: true
-    volumeMounts:
-      - name: local-vol
-        mountPath: /var/lib/docker
-        subPath: docker
-      - name: local-vol
-        mountPath: /var/socket
-        subPath: socket
-      - name: local-vol
-        mountPath: /etc/docker/certs.d/
-        subPath: pub_certs
-        readOnly: true
-  volumes:
-    - name: local-vol
-      persistentVolumeClaim:
-        claimName: local-pvc
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: devops-sa
+  namespace: devops
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: deploy-role
+  namespace: devops
 rules:
   - apiGroups: [""]
     resources:
@@ -104,6 +82,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: devops-deploy-bind
+  namespace: devops
 subjects:
   - kind: ServiceAccount
     name: devops-sa
@@ -113,111 +92,10 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: v1
-kind: Pod
-metadata:
-  name: agent
-  labels:
-    run: action-runner
-    role: devops
-spec:
-  serviceAccountName: devops-sa
-  containers:
-  - name: agent
-    image: agent:v1
-    imagePullPolicy: IfNotPresent
-    env:
-    - name: DOCKER_HOST
-      value: unix:///var/socket/docker.sock
-    - name: GIT_SSH_COMMAND
-      value: 'ssh -i /etc/ssh_keys/ssh-github -o IdentitiesOnly=yes'
-    volumeMounts:
-    - name: local-vol
-      mountPath: /var/socket/
-      subPath: socket
-    - name: local-vol
-      mountPath: /var/_work/
-      subPath: _work
-    - name: ssh-keys-vol
-      readOnly: true
-      mountPath: /etc/ssh_keys
-    - name: docker-config-vol
-      readOnly: true
-      mountPath: /home/agent/.docker
-  initContainers:
-  - name: docker-sock-init
-    image: debian:bullseye
-    command: ['/bin/bash', '-c', 'cd /var/socket && until test -e "docker.sock"; do sleep 1; done; chmod 660 docker.sock && chown 1000:1000 docker.sock' ]
-    volumeMounts:
-    - name: local-vol
-      mountPath: /var/socket/
-      subPath: socket
-  volumes:
-  - name: local-vol
-    persistentVolumeClaim:
-      claimName: local-pvc
-  - name: docker-config-vol
-    secret:
-      secretName: registry
-      items:
-      - key: .dockerconfigjson
-        path: config.json
-  - name: ssh-keys-vol
-    secret:
-      defaultMode: 292
-      secretName: ssh-key-secret
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: registry
-  labels:
-    run: registry
-    role: devops
-spec:
-  containers:
-  - name: registry
-    image: registry:2
-    env:
-    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
-      value: /var/registry
-    - name: REGISTRY_AUTH
-      value: htpasswd
-    - name: REGISTRY_AUTH_HTPASSWD_REALM
-      value: basic_realm
-    - name: REGISTRY_AUTH_HTPASSWD_PATH
-      value: /etc/auth/htpasswd
-    - name: REGISTRY_HTTP_TLS_CERTIFICATE
-      value: /etc/certs/tls.crt
-    - name: REGISTRY_HTTP_TLS_KEY
-      value: /etc/certs/tls.key
-    ports:
-    - containerPort: 5000
-      name: registry-port
-    volumeMounts:
-      - name: local-vol
-        mountPath: /var/registry
-        subPath: registry
-      - name: certs-vol
-        mountPath: /etc/certs
-        readOnly: true
-      - name: auth-vol
-        mountPath: /etc/auth
-        readOnly: true
-  volumes:
-    - name: local-vol
-      persistentVolumeClaim:
-        claimName: local-pvc
-    - name: certs-vol
-      secret:
-        secretName: registry-cert
-    - name: auth-vol
-      secret:
-        secretName: registry-auth
----
-apiVersion: v1
 kind: Service
 metadata:
   name: registry-svc
+  namespace: devops
   labels:
     role: devops
 spec:
@@ -227,4 +105,186 @@ spec:
   - protocol: TCP
     port: 5000
     targetPort: registry-port
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: docker-rs
+  namespace: devops
+  labels:
+    role: devops
+    app: docker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: docker
+  template:
+    metadata:
+      name: docker
+      namespace: devops
+      labels:
+        app: docker
+        run: docker
+        role: devops
+    spec:
+      containers:
+      - name: docker
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/socket/docker.sock
+        image: docker:dind
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: local-vol
+            mountPath: /var/lib/docker
+            subPath: docker
+          - name: local-vol
+            mountPath: /var/socket
+            subPath: socket
+          - name: local-vol
+            mountPath: /etc/docker/certs.d/
+            subPath: pub_certs
+            readOnly: true
+      volumes:
+        - name: local-vol
+          persistentVolumeClaim:
+            claimName: local-pvc
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: agent-rs
+  namespace: devops
+  labels:
+    role: devops
+    app: agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: action-runner
+  template:
+    metadata:
+      name: agent
+      namespace: devops
+      labels:
+        app: agent
+        run: action-runner
+        role: devops
+    spec:
+      serviceAccountName: devops-sa
+      containers:
+      - name: agent
+        image: agent:v1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DOCKER_HOST
+          value: unix:///var/socket/docker.sock
+        - name: GIT_SSH_COMMAND
+          value: 'ssh -i /etc/ssh_keys/ssh-github -o IdentitiesOnly=yes'
+        volumeMounts:
+        - name: local-vol
+          mountPath: /var/socket/
+          subPath: socket
+        - name: local-vol
+          mountPath: /var/_work/
+          subPath: _work
+        - name: ssh-keys-vol
+          readOnly: true
+          mountPath: /etc/ssh_keys
+        - name: docker-config-vol
+          readOnly: true
+          mountPath: /home/agent/.docker
+      initContainers:
+      - name: docker-sock-init
+        image: debian:bullseye
+        command: ['/bin/bash', '-c', 'cd /var/socket && until test -e "docker.sock"; do sleep 1; done; chmod 660 docker.sock && chown 1000:1000 docker.sock' ]
+        volumeMounts:
+        - name: local-vol
+          mountPath: /var/socket/
+          subPath: socket
+      - name: agent-init
+        image: debian:bullseye
+        command: ['/bin/bash', '-c', 'chown -R 1000:1000 /var/_work && chmod -R 770 /var/_work' ]
+        volumeMounts:
+        - name: local-vol
+          mountPath: /var/_work
+          subPath: _work
+      volumes:
+      - name: local-vol
+        persistentVolumeClaim:
+          claimName: local-pvc
+      - name: docker-config-vol
+        secret:
+          secretName: registry
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+      - name: ssh-keys-vol
+        secret:
+          defaultMode: 292
+          secretName: ssh-key-secret
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: registry-rs
+  namespace: devops
+  labels:
+    app: registry
+    role: devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: registry
+  template:
+    metadata:
+      name: registry
+      namespace: devops
+      labels:
+        run: registry
+        role: devops
+    spec:
+      containers:
+      - name: registry
+        image: registry:2
+        env:
+        - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+          value: /var/registry
+        - name: REGISTRY_AUTH
+          value: htpasswd
+        - name: REGISTRY_AUTH_HTPASSWD_REALM
+          value: basic_realm
+        - name: REGISTRY_AUTH_HTPASSWD_PATH
+          value: /etc/auth/htpasswd
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          value: /etc/certs/tls.crt
+        - name: REGISTRY_HTTP_TLS_KEY
+          value: /etc/certs/tls.key
+        ports:
+        - containerPort: 5000
+          name: registry-port
+        volumeMounts:
+          - name: local-vol
+            mountPath: /var/registry
+            subPath: registry
+          - name: certs-vol
+            mountPath: /etc/certs
+            readOnly: true
+          - name: auth-vol
+            mountPath: /etc/auth
+            readOnly: true
+      volumes:
+        - name: local-vol
+          persistentVolumeClaim:
+            claimName: local-pvc
+        - name: certs-vol
+          secret:
+            secretName: registry-cert
+        - name: auth-vol
+          secret:
+            secretName: registry-auth
 ---
