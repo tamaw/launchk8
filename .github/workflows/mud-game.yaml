@@ -9,16 +9,17 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Set Environment Variables
-      uses: ./.github/actions/setenvvars
-      with:
-        varFilePath: ./.github/variables/clustervars.env
 
     - name: Checkout repository
       uses: actions/checkout@v3
 
     - name: Checkout submodules
       uses: ./.github/actions/gitsubmodules
+
+    - name: Set Environment Variables
+      uses: ./.github/actions/setenvvars
+      with:
+        varFilePath: ./.github/variables/clustervars.env
 
     - name: build mud with docker
       run: docker build -t mud:${{ github.run_id }} -f repos/mud/server/Dockerfile --target runtime repos/mud/server
