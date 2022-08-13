@@ -1,9 +1,9 @@
 name: 'Git Submoduls'
 description: 'Pull Git submodules recursivily'
-inputs:
 runs:
   using: "composite"
   steps:
-    run: |
-      git submodule sync --recursive
-      git submodule update --init --force  --recursive --depth=1
+    - run: |
+        git submodule sync --recursive
+        git submodule update --init --force  --recursive --depth=1
+      shell: bash
