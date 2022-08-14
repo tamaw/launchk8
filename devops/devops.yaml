@@ -55,10 +55,9 @@ metadata:
   namespace: devops
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: deploy-role
-  namespace: devops
 rules:
   - apiGroups: [""]
     resources:
@@ -77,19 +76,14 @@ rules:
       - list
       - patch
       - create
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: devops-deploy-bind
-  namespace: devops
-subjects:
-  - kind: ServiceAccount
-    name: devops-sa
-roleRef:
-  kind: Role
-  name: deploy-role
-  apiGroup: rbac.authorization.k8s.io
+  - apiGroups: [""]
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - patch
+      - create
 ---
 apiVersion: v1
 kind: Service
