@@ -19,4 +19,4 @@ jobs:
         varFilePath: ./.github/variables/clustervars.env
 
     - name: rollout deployment
-      run: kubectl create -f apps/mud/mud-deployment.yaml
+      run: kubectl apply -f apps/mud/mud-deployment.yaml
