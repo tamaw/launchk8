@@ -31,4 +31,4 @@ jobs:
       run: docker push ${{ env.CLUSTER_URN }}/mud:${{ github.run_id }}
 
     - name: rollout deployment
-      run: kubectl set image deployment/mud-deploy mud-app=${{ env.CLUSTER_URN }}/mud:${{ github.run_id }}
+      run: kubectl set image deployment/mud-deploy mud-app=${{ env.CLUSTER_URN }}/mud:${{ github.run_id }} -n mud-dev
