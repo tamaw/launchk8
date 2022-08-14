@@ -1,5 +1,5 @@
-name: 'Git Submoduls'
-description: 'Pull Git submodules recursivily'
+name: 'Git Submodules'
+description: 'Pull Git submodules recursivily using git'
 runs:
   using: "composite"
   steps:
