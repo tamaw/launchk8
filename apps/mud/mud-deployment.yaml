@@ -3,6 +3,19 @@ kind: Namespace
 metadata:
   name: mud-dev
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mud-local-pvc
+  namespace: mud-dev
+spec:
+  resources:
+    requests:
+      storage: 10Mi
+  storageClassName: local-storage
+  accessModes:
+  - ReadOnlyMany
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,21 +38,21 @@ spec:
     spec:
       containers:
       - name: mud-app
-        image: registry-svc.default.svc.cluster.local:5000/mud:tama
+        image: registry-svc.devops.svc.cluster.local:5000/mud:tama
         volumeMounts:
-        - name: local-vol
+        - name: mud-vol
           mountPath: /var/lib/mud/data
           subPath: mud_data
         resources:
           limits:
             memory: "128Mi"
-            cpu: "500m"
+            cpu: "100m"
       imagePullSecrets:
       - name: registry
       volumes:
-      - name: local-vol
+      - name: mud-vol
         persistentVolumeClaim:
-          claimName: local-pvc
+          claimName: mud-local-pvc
 ---
 apiVersion: v1
 kind: Service
