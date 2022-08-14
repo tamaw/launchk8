@@ -13,13 +13,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Checkout submodules
-      uses: ./.github/actions/gitsubmodules
-
     - name: Set Environment Variables
       uses: ./.github/actions/setenvvars
       with:
         varFilePath: ./.github/variables/clustervars.env
 
     - name: rollout deployment
-      run: kubectl create -f apps/mud-deployment.yaml
+      run: kubectl create -f apps/mud/mud-deployment.yaml
