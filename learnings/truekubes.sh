@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Borg - original googles schedule monitor & machine sharing
-# Kubernetes derives from Borg 
+# Kubernetes derives from Borg
 
 # Containers have their own PID namespace, Network namespace & UTS namespace
 # control groups (cgroups) set resources which it can consume
@@ -9,11 +9,11 @@
 # k8s
 # - automatically schedules containers for resource optimisation
 # - service discovery to find other containers
-# - load balancing to spread traffic - OSI layer 4 & 7 
+# - load balancing to spread traffic - OSI layer 4 & 7
 # - self healing - reschedule when a container crashes
 # - horizontal scaling - automatically creates replicas of containers
 # - rolling updates - swap out old containers
-# - zero-downtime reversion - go back a version 
+# - zero-downtime reversion - go back a version
 # - secret data management
 # - abstracts away hardware
 
@@ -29,8 +29,8 @@
 #   - etcd - stores cluster related management/configuration data
 #   - controller manager - node controller,  replication controller
 #   - api server - controls the cluster
-# - workers node components 
-#   - kubelet - node agent 
+# - workers node components
+#   - kubelet - node agent
 #   - kube-proxy - network communication
 #   - container engine - docker runc or something
 
@@ -42,7 +42,7 @@ minikube status
 minikube dashboard --url
 minikube stop
 # create new cluster
-minikube delete 
+minikube delete
 
 # pods
 # - holds one or more containers
@@ -52,14 +52,14 @@ minikube delete
 # - containers can communicate within a pod without NAT (via localhost, IPC)
 # horizontal scaling
 # - replicates the pods not the containers as to have a new network namespace
-# - are ephemeral (short lived) and can be evicted from the node 
+# - are ephemeral (short lived) and can be evicted from the node
 # - generally most pods have one container unless tightly coupled
 
 kubectl create -f primes-pod.yaml
 # can see new pod
-kubectl get pods 
+kubectl get pods
 # only container is still minikube
-docker ps 
+docker ps
 
 # logs
 # - All container logs can be accessed by pod logs (can follow with -f)
@@ -79,7 +79,7 @@ kubectl get pod/primes -o json
 # restarts exponentially (max 5m, resets after 10m)
 
 # terminating pods give 30 seconds to gracefully shutdown or it will forcefully shutdown
-# can optionally specify 
+# can optionally specify
 kubectl delete pod/primes --grace-period=50
 # last resort
 kubectl delete pod/primes --grace-period=0 --force
@@ -87,13 +87,13 @@ kubectl delete pod/primes --grace-period=0 --force
 # more yaml conf
 # - command: overrides ENTRYPOINT in a docker image
 # - args: overrides CMD in a docker image
-# - env: define your own environment variables for the container. 
+# - env: define your own environment variables for the container.
 # - can reference environment variables with $(name) which are expended before command being run
 # - $ is also an escape character $$ prints $
 
 # init containers
-# - Perform initialisation before starting the app containers 
-# - Must run to completion 
+# - Perform initialisation before starting the app containers
+# - Must run to completion
 # - Run in order 0,1,2..
 # - If the init containers fail to complete, the pod fails to start up
 # - Could be for
@@ -134,7 +134,7 @@ kubectl get pods -l='layer=interface,version!=alpha' -L=version
 # new (set based) label expression selectors in config files
 # - spec: selector: matchExpressions: - {key: b operator: a, values: [a,c]}
 # - replica sets and deployments benefit most from the new style selector field
-# - matchLabels: very similar to the old style (likea buy) a map 
+# - matchLabels: very similar to the old style (likea buy) a map
 # - matchExpressions: contains key, operator and values
 #   - values: is an array
 #   - operator: is In, NotIn, Exists, DoesNotExist
@@ -148,12 +148,12 @@ kubectl delete -f example.yml
 # annotations
 # - kvp to store metadata on a component, similar to labels
 # - used to attach non-identifying metadata. aka everything else not a label
-# - eg team contact, git branch hash, cluster or user modified, 
+# - eg team contact, git branch hash, cluster or user modified,
 # - lesser character limitations than labels
 # - can store structured and unstructured data
 
-# namespaces 
-# - can create the illusion of more clusters like a virtual cluster 
+# namespaces
+# - can create the illusion of more clusters like a virtual cluster
 # - managed by the kubenetes cluser
 # - parition an existing cluster into more clusters
 # - used help with naming resources. components in different namespaces can share names
@@ -168,7 +168,7 @@ kubectl get namespaces
 
 # create namespaces
 kubectl create namespace dev
-kubectl create namespace tst 
+kubectl create namespace tst
 
 # you need to specify a namespace or else it's the default namespace
 kubectl create -f example-pods.yml --namespace dev
@@ -234,7 +234,7 @@ kubectl get pods
 # can manually scale a deployment using the underlying replicaset
 kubectl scale deployment/awesomeo --replicas=1
 
-# kubectl can hot reload edits 
+# kubectl can hot reload edits
 kubectl edit -f deployment.yml
 
 # kubectl describe command
@@ -245,16 +245,16 @@ kubectl describe deployment/awesomeo
 # upgrade deployments (on the fly)
 # - a rollout is using deployments
 # - similar to scaling up and down different replicasets
-# - keeps minimum number of pods running 
+# - keeps minimum number of pods running
 # - total number of pods wont exceed a limit
 # - all automatic
 # - maxSurge - specifies how many additional replicas you can have
-# - maxUnavilable - fails the pod 
+# - maxUnavilable - fails the pod
 # - you can specify an percentage (rounded up)
 # - both maxSurge andmaxUnailable default to 25%
 
 kubectl edit -f deployment.yml
-# see the change + look at events 
+# see the change + look at events
 kubectl describe deployment/awesomeo
 
 # rollout command
@@ -264,7 +264,7 @@ kubectl rollout status deployment/awesomeo
 
 # handle diagnostics
 kubectl get pods
-kubectl logs pod/awesomeo-5dd74bcb88-9vkr7 
+kubectl logs pod/awesomeo-5dd74bcb88-9vkr7
 
 # rollout undo
 # - failed updates
@@ -336,7 +336,7 @@ kubectl delete -f service.yaml
 # - ports: targetPort: 3000 - the port on the backing pods
 
 # Expose
-# - creates a new service from a pod, replicaset, deployment and 
+# - creates a new service from a pod, replicaset, deployment and
 # - will need to have the deployment deployed first
 # - wont except deployments/replicasets with matchexpression labels
 # .. service.yaml commented out the the kind:service
@@ -346,9 +346,9 @@ kubectl get services
 #kubectl delete service/echo
 
 ## Service Discovery
-# - annoying to get ip addresses 
+# - annoying to get ip addresses
 # - lookup by service name uses a dns
-# - dns is optional 
+# - dns is optional
 # - dns gives the service a predictable domain name
 # - <servicename>.<namespace>
 # - namespace is optional if you're in the same namespace
@@ -361,7 +361,7 @@ kubectl exec -it daemon-jmhxq -- sh
 ## Environment varaibles
 # - scopes to the service name
 # - <servicename>_<variable> eg cluster_port
-# - list varaibles on pod sh# printenv 
+# - list varaibles on pod sh# printenv
 # - can use the env vars to talk to other services
 # - contains cluster env vars
 # - !! cluster vars are only populate if the pod is created after the service
@@ -375,7 +375,7 @@ kubectl exec -it daemon-jmhxq -- sh
 # - will redirect ANY node traffic to the service on the node it's attached to
 # - useful for an external load balancer
 # - to turn a Service into a NodePort Service
-#	 - spec: type: NodePort 
+#	 - spec: type: NodePort
 # - automatically get assigned a nodePort 30000-32767
 # - can change with --service-node-port-range to the clusters api server
 # - can change the port with nodePort: 33222
@@ -401,7 +401,7 @@ curl 192.168.49.2:32732
 # no selector services
 # - services can proxy for something outside of kubernetes
 # - pods can talk to the service and not care about where it actually points
-# - useful for different environments dev/prod 
+# - useful for different environments dev/prod
 # - used with Endpoint Objects
 #   - maps to ips and ports
 #   - kind: Endpoints
@@ -409,7 +409,7 @@ curl 192.168.49.2:32732
 # - create a service without a select and point it to an endpoint object
 
 # session afinity
-# - sessionAffinity - specify the client to hit the same pod 
+# - sessionAffinity - specify the client to hit the same pod
 # - optionally sessionAffinityConfig: clientIP: timeoutSeconds: 3600
 # - timeout will then change pod
 # - not enabled by default
@@ -450,7 +450,7 @@ kubectl create -f daemonset.yml
 kubectl get daemonset
 kubectl get pods
 kubectl attach daemon-jxwzg
-# specify -c containername 
+# specify -c containername
 
 # stdin
 # - set spec: containers: stdin: true & tty: true
@@ -507,7 +507,7 @@ kubectl top pods kube-scheduler-minikube -n kube-system
 # - timeoutSeconds - waiting for the health check, timeout = unknown
 
 kubectl create -f pod-ready.yaml
-kubectl get po 
+kubectl get po
 kubectl describe pod/ready
 kubectl exec -it ready -- sh
 # rm /tmp/file
@@ -519,7 +519,7 @@ kubectl delete -f pod-ready.yaml
 ## lifecycles
 # - containers have lifecycles
 # - PostStart - runs after container has started
-# - PreStop - executes before a container terminates. 
+# - PreStop - executes before a container terminates.
 # - handlers
 #   - exec - runs a command
 #   - http - makes a get request to containers host pod
@@ -554,7 +554,7 @@ kubectl delete -f storage.yaml
 # - has a different lifecycle
 #    - 1 provision - admin creates (can be dynamic)
 #    - 2 claim - dev creates claim, claim binds if request succeeds or remains unbound
-#    - 3 use - like another volume 
+#    - 3 use - like another volume
 #    - 4 reclaim - (retain, recycle[deprecated], delete)
 # - claim (PVC)
 #   - user requests storage
@@ -589,11 +589,11 @@ kubectl exec -it web-server -- sh
 # - 5. can use the claim as a volume
 # - storageClass cannot have labels
 # - if the storage class name is an empty string it wont dynamically allocate storage
-# - without the storage class name it will attempt to use a default storage class 
+# - without the storage class name it will attempt to use a default storage class
 
 kubectl get sc
 # minikube comes with a default storage class named standard
-# kubernetes can dynamically provision the pv to fill a pvc off of the default storageClass 
+# kubernetes can dynamically provision the pv to fill a pvc off of the default storageClass
 # unless specified, to use a storageClass by name
 
 ## Job (controller)
@@ -607,7 +607,7 @@ kubectl get sc
 # - restartPolicy can either be onFailure or Never
 # - always will never let the pod terminate
 # - default of 6 retries
-# - fixed compleition 
+# - fixed compleition
 #   - add parallelism field to config
 #   - determine how it is compelted is the number of compelted tasks
 # - with a task queue
@@ -618,7 +618,7 @@ kubectl get sc
 # - you can use kubectl scale to increase or decrease the number of running jobs
 # - the pods stick around when the jobs complete
 
-## job fixed 
+## job fixed
 #commds for container
 mkdir -p tmp/1 tmp/2 tmp/3 tmp/4 tmp/5
 rmdir $(ls -1 | head -n 1)
@@ -628,28 +628,28 @@ kubectl create -f local-storage.yaml # used for example
 kubectl create -f job-fixed.yaml # create our jobs
 
 # check to see its completed
-kubectl get po 
+kubectl get po
 kubectl describe job folderjob
 kubectl logs job.batch/folderjob
 
 # check the volume out to see the directories
-minikube ssh 
+minikube ssh
 ls /var/local-vol0/demo
 
 # cleanup
-kubectl delete -f job-fixed.yaml 
+kubectl delete -f job-fixed.yaml
 
 ## job queues
 # commands for containers
 # create folders
 for i in {1..100}; do mkdir $i; done && mkdir "done"
 # test until folders are created
-until test -e "done"; do sleep 1; done 
+until test -e "done"; do sleep 1; done
 # delete folders until all are done
 while ls -1 | grep -E "[0-9]+"; do sleep 1 && rmdir $(ls -1 | grep -E "[0-9]+" | head -n 1); done
 
-kubectl create -f job-queue.yaml 
-#kubectl delete -f job-queue.yaml 
+kubectl create -f job-queue.yaml
+#kubectl delete -f job-queue.yaml
 # watch the jobs run
 kubectl get po -w
 
@@ -680,7 +680,7 @@ kubectl delete job rmjob
 # - interchangable, don't maintain any information
 # - can be replaced with a new pod
 # stateful
-# - not interchangable 
+# - not interchangable
 # - maintains their storage when replaced
 # - used with the stateful set controller
 # - e.g. databases
@@ -693,12 +693,12 @@ kubectl delete job rmjob
 # - they are created in incrementing order and deleted in reverse order
 # - if they need to be recreated they will fill the gaps
 # - you can rely on these hostnames in applications
-# headless service 
+# headless service
 # - a service without a cluster ip address
 # - spec: clusterIP: None
 # - provides no loadblanace or proxy
 # - maintains a stateless pods dns record turning the dns to stateful
-# - headless services get stateful pods their identity 
+# - headless services get stateful pods their identity
 # - can address the pod via service with statefulset.ordinal#.namspace
 # - label selector must match the pod labels
 # statuful volumes
@@ -729,7 +729,7 @@ kubectl get events
 #   - you can pass literal values --from-literal=key=value
 # - tls - certificate
 #   - tls --cert=a.cert --key=secret.key
-# - config fie  
+# - config fie
 #   - must be base64 encoded
 # ways to access
 # - by volume
@@ -748,7 +748,7 @@ echo -n "user1" | base64
 kubectl create -f secret.yaml
 kubectl get secret/super-secret
 # display the secret values
-kubectl get secret/super-secret -o yaml 
+kubectl get secret/super-secret -o yaml
 
 # use secrets as files
 kubectl create -f secret-pod.yaml
@@ -798,26 +798,26 @@ kubectl get cm/myconfig1 -o yaml
 # - route incoming connections on http request path
 # - TLS termination - https to http internally
 # - name-based virtual hosting
-# - lots of ingress controller implementations 
+# - lots of ingress controller implementations
 #   - for example minikube uses nginx which should be deployed on a pod
 # - fanout - different paths go to different pods
 # - rewrite-target - changes the path to what the backend service expects
 # - often deployed in a different namespace and can see all ingress rules
-# - cannot define ingress port (80,443 only) 
+# - cannot define ingress port (80,443 only)
 # - hostname only takes domain names, hostname omitted is a wildcard
-# - nginx can reroute to https by default 
+# - nginx can reroute to https by default
 # - can specify backend: for a default backend
 # - name based virtual hosting with tls requires server name indication
 # - you can point to a secret to assign a certificate with tls:
 
 
-# build ingress 
-minikube addons enable ingress 
+# build ingress
+minikube addons enable ingress
 kubectl get po -n ingress-nginx
 kubectl create -f ingress-demo.yaml
 kubectl apply -f ingress-demo.yaml
 
-# test to see if its deployed 
+# test to see if its deployed
 kubectl get ingress
 kubectl get service
 kubectl describe ing/demo-ingress
@@ -840,9 +840,9 @@ sudo echo "$(minikube ip) demo.example" >> /etc/hosts
 # - missing ingress/egress rules will block all traffic
 # - you can supply ingress/egress with an empty rule {} to allow traffic
 # - if you omit policy type, ingress is default supplied
-# - policies aren't enabled by default, 
+# - policies aren't enabled by default,
 # - big increase in memory footprint, avoid with small cloud plans
-# - there are lots of different network plugins 
+# - there are lots of different network plugins
 #   - not enabled by default on minikube
 
 
@@ -885,11 +885,11 @@ capsh --print
 #   -> cores 1 / 0.5
 #   -> milicpus 500m (thousandths of a core. 50% of 1 core)
 # - memory
-#   -> bytes 
+#   -> bytes
 #   -> SI units (powers of 10) K,M,G,T
 #   -> power of 2 units Ki,Mi,Gi,Ti
-# - upper bounds are specified with limits: 
-# - lower bounds are specified with requests: 
+# - upper bounds are specified with limits:
+# - lower bounds are specified with requests:
 # - nodes can oversubscribe leaving unrequest resources used
 # - a pods resource request is the sum of all of it's containers requests
 # - node will be scheduled on a node with available resources
@@ -897,12 +897,12 @@ capsh --print
 # - these arent hard limits and containers can be cpu throttled or killed
 #   - however, out of memory will kill it with OOM killer
 # - Quality of Service - specifies which is least important to be killed
-# - QoS are assigned by what resource it requests 
+# - QoS are assigned by what resource it requests
 #   - is either guarantee, burstable or best effort
 #   - can be seen with the describe
-#   - guarantee request = limit or limit is specified 
-#   - burstable has different limit and guarantee
-#   - best effort does not specify any requests or limits
+#   - guarantee - request = limit or limit=request is specified
+#   - burstable - has different limit and guarantee
+#   - best effort - does not specify any requests or limits
 # - global default
 # - used with kind limitRange (min, max and default)
 #  - you can also specify a min and max for the namespace
@@ -940,7 +940,7 @@ kubectl exec -it -n gogogadget go-deploy-564b49fc98-jtpdm -- /bin/bash
 # :(){ :|:& };:
 # check it out
 kubectl get po -n gogogadget -w
-kubectl get po -n gogogadget 
+kubectl get po -n gogogadget
 # it scaled lol
 kubectl get events -n gogogadget
 # the forkbombs get killed eventually from running out of memory OOM
@@ -949,7 +949,7 @@ kubectl get events -n gogogadget
 kubectl autoscale deployment go-deploy --min=1 --max=5 --cpu-percent=50
 
 kubectl delete namespace/gogogadget
-# watch out for "thrashing" 
+# watch out for "thrashing"
 # - scaling up and down too soon,  overshooting requirements
 # - comes with a scale down delay (default 5m)
 # - you can change the downscale delay
@@ -959,7 +959,7 @@ kubectl delete namespace/gogogadget
 # - you can use Affinity
 #   - node affinity - scheduled on nodes with specific labels
 #   - pod affinity - schedule pods where other pods are schedueled
-#   - anti-affinity - don't put two pods on the same node 
+#   - anti-affinity - don't put two pods on the same node
 # - two varients:
 #   - requiredDuringSchedulingIgnoredDuringExecution
 #   - preferredDuringSchedulingIgnoredDuringExecution
@@ -983,7 +983,7 @@ kubectl delete namespace/gogogadget
 
 # add label to node
 kubectl label node minikube speed=fast
-# add taint to node 
+# add taint to node
 # node = target type, target label, taint = key, value, effect
 kubectl taint node -l speed=fast reservation=store:noschedule
 #or
@@ -996,7 +996,7 @@ kubectl taint node minikube key=val:PreferNoSchedule-
 ## Best Practises
 # - avoid using the latest tag on images
 # - direct application log messages to STDOUT or STDERROR
-# - setup cluster logging 
+# - setup cluster logging
 # - avoid adding fields with default values to minimise the complexity
 # - container should have one purpose
 # - always use a controller to create/manage pods

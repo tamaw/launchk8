@@ -2,3 +2,7 @@
 	path = repos/mud
 	url = git@github.com:hahahaskell/mud.git
 	branch = master
+[submodule "repos/bricktrader"]
+	path = repos/bricktrader
+	url = https://github.com/hahahaskell/bricktrader.git
+	branch = main
