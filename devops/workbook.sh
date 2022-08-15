@@ -259,7 +259,7 @@ minikube cp ./secrets/tls.crt /etc/docker/certs.d/registry-svc.default.svc.clust
 # test
 docker login registry-svc.default.svc.cluster.local:5000
 
-# lets have the agent read the registry (should have been docker agent)
+# lets have the agent read the registry (should have been docker)
 minikube ssh
 
 sudo mkdir -p /var/local-vol/pub_certs/registry-svc.default.svc.cluster.local:5000/

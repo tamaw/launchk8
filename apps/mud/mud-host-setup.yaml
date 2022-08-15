@@ -12,3 +12,28 @@ subjects:
 - kind: ServiceAccount
   name: devops-sa
   namespace: devops
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mud-local-pv
+  namespace: mud-dev
+spec:
+  capacity:
+    storage: 10Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  local:
+    path: /var/mud-local-vol
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - minikube
+---
