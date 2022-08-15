@@ -124,6 +124,7 @@ spec:
             value: unix:///var/socket/docker.sock
         image: docker:dind
         securityContext:
+          readOnlyRootFilesystem: true
           privileged: true
         volumeMounts:
           - name: local-vol
@@ -167,6 +168,8 @@ spec:
       containers:
       - name: agent
         image: agent:v1
+        securityContext:
+          readOnlyRootFilesystem: true
         imagePullPolicy: IfNotPresent
         env:
         - name: DOCKER_HOST
@@ -240,6 +243,8 @@ spec:
       containers:
       - name: registry
         image: registry:2
+        securityContext:
+          readOnlyRootFilesystem: true
         env:
         - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
           value: /var/registry
