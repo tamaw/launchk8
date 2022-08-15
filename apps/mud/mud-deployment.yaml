@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
       - name: mud-app
-        image: busybox:latest
+        image: mud:latest
         volumeMounts:
         - name: mud-vol
           mountPath: /var/lib/mud/data
