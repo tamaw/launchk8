@@ -14,7 +14,7 @@ jobs:
         uses: ./.github/actions/gitsubmodules
 
       - name: Build
-        run: docker build -t bricktrader:latest -f repos/bricktrader/Dockerfile ./
+        run: docker build -t bricktrader:latest -f repos/bricktrader/Dockerfile repos/bricktrader
 
       - name: Copy
         run: docker run --rm --entrypoint cat bricktrader:latest dist/bricktrader-exe > bricktrader-exe
