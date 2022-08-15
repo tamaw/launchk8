@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
       - name: mud-app
-        image: registry-svc.devops.svc.cluster.local:5000/mud:tama
+        image: busybox:latest
         volumeMounts:
         - name: mud-vol
           mountPath: /var/lib/mud/data
