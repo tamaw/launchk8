@@ -88,14 +88,27 @@
 
 ## DevOps Project
 
-
-### Goals
+A mini project which creates a GitHub build isolated inside of Kubernetes.
 
 ### Architecture
 
-## Result
+- Docker in Docker
+  - builds docker images
+  - publishes them to the repo
+- GitHub agent
+  - runs workflow commands triggered by GitHub
+  - can trigger builds on docker
+  - can make deployments to the node
+- Registry
+  - Stores the built images
+  - Accessible by the node to deploy
+
+![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/infra%20layout.png)
+
+![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/stack.png)
 
 ## TODO
 
 - Improve resource allocation
-- Mud liveliness
+- Add liveliness
+- Central logging would be good
