@@ -11,7 +11,9 @@
 ## Highlights
 
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/devops.png)
+Docker in container building an image.
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/mud-working.png)
+Working mud from a pod.
 
 ## Approach
 
