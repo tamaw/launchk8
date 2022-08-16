@@ -10,6 +10,9 @@
 
 ## Highlights
 
+![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/devops.png)
+![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/mud-working.png)
+
 ## Approach
 
 - Workbooks - `workbooks.sh` show the journey I took to make the product. Including, some of the mistakes I made along the way.
