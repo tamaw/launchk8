@@ -12,7 +12,7 @@
 
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/devops.png)
 
-^ Docker in docker (ind) building an image. Then deploying to a cluster hosted repository
+^ Docker in docker (dind) building an image. Then deploying image to a repository in the cluster.
 
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/mud-working.png)
 
