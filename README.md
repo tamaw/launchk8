@@ -3,7 +3,9 @@
 ## About
 
 - Learning Kubernetes from the [true kubernetes](true-kubernetes.com) course
-- Custom examples demonstrating the learnings
+- Custom examples demonstrating the learnings 
+  - [Fork Bomb Horizontal Scaling](https://github.com/tamaw/launchk8/blob/main/learnings/examples/hpa.yaml)
+  - [Queued Parallel Jobs by creating and deleting a bunch of folders](https://github.com/tamaw/launchk8/blob/main/learnings/examples/job-queue.yaml) 
 - A project to run GitHub Actions, build Docker images and deploy images into pods
 - Two GitHub builds, one for a MUD game, the other for a TUI app
 - Kubernetes deployment for the the MUD game
