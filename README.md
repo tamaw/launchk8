@@ -11,9 +11,9 @@
 ## Highlights
 
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/devops.png)
-Docker in docker (ind) building an image. Then deploying to a cluster hosted repository
+^ Docker in docker (ind) building an image. Then deploying to a cluster hosted repository
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/mud-working.png)
-Working mud from a pod.
+^ Playing my friends mud game created pod and deployed the container from the repository, accessible from open ports.
 
 ## Approach
 
