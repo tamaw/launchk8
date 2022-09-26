@@ -9,6 +9,7 @@
 - A project to run GitHub Actions, build Docker images and deploy images into pods
 - Two GitHub builds, one for a MUD game, the other for a TUI app
 - Kubernetes deployment for the the MUD game
+- Everything is in [workbook.sh](https://github.com/tamaw/launchk8/blob/main/devops/workbook.sh) and [runbook.sh](https://github.com/tamaw/launchk8/blob/main/devops/runbook.sh) for learnings and reproducibility 
 
 ## Highlights
 
