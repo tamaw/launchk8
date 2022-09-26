@@ -11,7 +11,7 @@
 ## Highlights
 
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/devops.png)
-Docker in container building an image.
+Docker in docker (ind) building an image. Then deploying to a cluster hosted repository
 ![](https://raw.githubusercontent.com/tamaw/launchk8/main/diagrams/mud-working.png)
 Working mud from a pod.
 
